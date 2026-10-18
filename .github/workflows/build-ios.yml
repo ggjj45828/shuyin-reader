@@ -40,8 +40,23 @@ jobs:
 
       - name: 生成 iOS 工程并登记四个原生插件
         # scripts/ios-setup.cjs 内部会 cap add ios，再把
-        # Audio / OCR / SecureStore / Share 四个 Swift 插件接进 pbxproj 与 MainViewController
+        # Audio / OCR / SecureStore / Share 四个 Swift 插件接进 pbxproj，
+        # 并把 package.json 的版本号灌进 Info.plist
         run: npm run ios:setup
+
+      - name: 断言四个插件已进入 App target 的 Sources 阶段
+        # 这一条是硬闸门。`xcode@3` 的 writeSync() 只返回字符串不写盘，
+        # 之前就是这样静默失败：构建"成功"，但 App target 只编了 AppDelegate.swift。
+        run: |
+          set -e
+          PBX=ios/App/App/App.xcodeproj/project.pbxproj
+          test -s "$PBX" || { echo "::error::pbxproj 为空"; exit 1; }
+          for f in ShuyinAudioPlugin ShuyinSecureStorePlugin ShuyinOCRPlugin ShuyinSharePlugin; do
+            n=$(grep -c "$f.swift in Sources" "$PBX" || true)
+            echo "  $f -> $n 处"
+            [ "$n" -ge 2 ] || { echo "::error::$f 没进 Sources 构建阶段（$n 处，应为 2）"; exit 1; }
+          done
+          echo "四个插件都在 Sources 构建阶段"
 
       - name: 同步 web 资源、Capacitor 插件并登记 App 内原生插件
         # ios:sync = cap sync ios + register-native-plugins.cjs
@@ -98,6 +113,23 @@ jobs:
           ls -l Shuyin-unsigned.ipa
           echo "--- Payload 结构 ---"
           find Payload -maxdepth 2 | head -30
+
+      - name: 断言插件类已编进可执行文件、版本号正确
+        run: |
+          set -e
+          APP="$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -n 1)"
+          for s in ShuyinAudioPlugin ShuyinSecureStorePlugin ShuyinOCRPlugin ShuyinSharePlugin; do
+            if ! strings -a "$APP/App" | grep -q "$s"; then
+              echo "::error::$s 不在可执行文件里（编译了但没链接进来？）"
+              exit 1
+            fi
+            echo "  $s 在二进制里"
+          done
+          V=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")
+          B=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")
+          PKG=$(node -p "require('./package.json').version")
+          echo "Info.plist: $V ($B) / package.json: $PKG"
+          [ "$V" = "$PKG" ] || { echo "::error::版本号没从 package.json 写入"; exit 1; }
 
       - name: 记录包体信息
         run: |

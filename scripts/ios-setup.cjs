@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const { addPlugins } = require('./pbx-add-plugins.cjs');
 
 const root = path.resolve(__dirname, '..');
 if (process.platform !== 'darwin') throw Error('生成/编译 iOS 原生工程必须在 macOS 上运行；Windows 只能编辑和检查源码。');
@@ -9,62 +10,31 @@ if (!fs.existsSync(path.join(root, 'ios', 'App', 'App.xcodeproj'))) {
   execFileSync(path.join(root, 'node_modules', '.bin', 'cap'), ['add', 'ios'], { cwd: root, stdio: 'inherit' });
 }
 
-const projectPath = path.join(root, 'ios/App/App.xcodeproj/project.pbxproj');
-const project = require('xcode').project(projectPath);
-project.parseSync();
-const appTarget = project.getFirstTarget().uuid;
-
-// 取 PBXGroup 的 **key（uuid 字符串）**。
-// 踩坑记录：`xcode` 库的 addSourceFile(path, opt, group) 里，group 必须是这个 key；
-// `pbxGroupByName()` 返回的组对象上并没有 `.uuid` 属性。原先传 `appGroup.uuid` 得到 undefined，
-// addSourceFile 于是退化成「无组」分支 → addPluginFile → correctForPluginsPath，
-// 而 Capacitor 生成的工程里没有 `Plugins` 组 → pbxGroupByName('Plugins') 返回 null
-// → 崩在 "Cannot read properties of null (reading 'path')"（CI run 39113350081）。
-//
-// 键的形态：hash 里同时存在 `"<24位uuid>"` 与 `"<24位uuid>_comment"` 两份，
-// 后者是名字（库里的 COMMENT_KEY = /_comment$/）。所以按 _comment 后缀找名字，再切掉后缀。
-function groupKeyByName(project, name) {
-  const groups = project.hash.project.objects.PBXGroup || {};
-  for (const key of Object.keys(groups)) {
-    if (!/_comment$/.test(key)) continue;
-    if (groups[key] === name) return key.replace(/_comment$/, '');
-  }
-  return null;
-}
-
-const groupKey = groupKeyByName(project, 'App');
-if (!groupKey) throw Error('Xcode 工程中找不到 App 源码组');
-
-const nativeDir = path.join(root, 'native', 'ios');
 const destDir = path.join(root, 'ios', 'App', 'App');
-const plugins = [
-  'ShuyinAudioPlugin.swift',
-  'ShuyinSecureStorePlugin.swift',
-  'ShuyinOCRPlugin.swift',
-  'ShuyinSharePlugin.swift',
-];
 
-for (const name of plugins) {
-  if (!fs.existsSync(path.join(nativeDir, name))) throw Error('缺少原生插件源码：' + name);
-  fs.copyFileSync(path.join(nativeDir, name), path.join(destDir, name));
-  if (!JSON.stringify(project.pbxFileReferenceSection()).includes(name)) {
-    project.addSourceFile(name, { target: appTarget, group: 'App' }, groupKey);
-    console.log('已登记插件：' + name);
-  } else {
-    console.log('已存在，跳过：' + name);
-  }
-}
+// ① 四个原生插件接进 App target（细节与踩坑注释见 scripts/pbx-add-plugins.cjs）
+const { added, skipped } = addPlugins({
+  projectPath: path.join(root, 'ios/App/App.xcodeproj/project.pbxproj'),
+  sourceDir: path.join(root, 'native', 'ios'),
+  destDir,
+});
+if (added.length) console.log('已接入 App target：' + added.join(', '));
+if (skipped.length) console.log('已存在，跳过：' + skipped.join(', '));
 
-project.writeSync();
+// 插件**注册**不在这里：Capacitor 7 的 iOS 模板只有 AppDelegate.swift + Info.plist，
+// 没有 MainViewController / capacitorDidLoad 可覆写。注册改由
+// scripts/register-native-plugins.cjs 写进 capacitor.config.json 的 packageClassList，
+// 且必须在 `cap sync` **之后**跑（见 package.json 的 ios:sync）。
 
-// 插件注册**不在这里**。Capacitor 7 的 iOS 模板只有 AppDelegate.swift + Info.plist，
-// 没有 MainViewController，没有 capacitorDidLoad 可以覆写；注册改由
-// `scripts/register-native-plugins.cjs` 写进 capacitor.config.json 的 packageClassList
-// （必须在 `cap sync` 之后跑，见 package.json 的 ios:sync）。
-console.log('插件文件已接入 App target；注册由 register-native-plugins.cjs 在 cap sync 之后完成');
-
-// Info.plist：后台音频、文件共享、本地网络 HTTP
+// ② 版本号：Capacitor 模板默认 1.0 / 1，必须从 package.json 灌进去，否则包内全是 1.0
+const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const plist = path.join(destDir, 'Info.plist');
+const buildNumber = process.env.GITHUB_RUN_NUMBER || String(pkg.version).replace(/\D/g, '') || '1';
+execFileSync('/usr/libexec/PlistBuddy', ['-c', 'Set :CFBundleShortVersionString ' + pkg.version, plist]);
+execFileSync('/usr/libexec/PlistBuddy', ['-c', 'Set :CFBundleVersion ' + buildNumber, plist]);
+console.log('版本号写入 Info.plist：' + pkg.version + ' (build ' + buildNumber + ')');
+
+// ③ Info.plist 补充：后台音频、文件共享、本地网络 HTTP
 const data = execFileSync('/usr/bin/plutil', ['-convert', 'xml1', '-o', '-', plist], { encoding: 'utf8' });
 let updated = data;
 const settings = [
