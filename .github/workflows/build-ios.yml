@@ -68,6 +68,15 @@ jobs:
           done
           echo "四个插件都在 Sources 构建阶段"
 
+      - name: 调试 —— 检查组装的 SPM 段
+        if: always()
+        run: |
+          PBX=ios/App/App.xcodeproj/project.pbxproj
+          echo "--- SPM 关键字 ---"
+          grep -n "packageProductDependencies\|packageReferences\|XCRemoteSwiftPackageReference\|XCSwiftPackageProductDependency" "$PBX" | head -20 || echo "（一个都没有）"
+          echo "--- App target 原文 ---"
+          awk '/Begin PBXNativeTarget section/,/End PBXNativeTarget section/' "$PBX" | head -60
+
       - name: 下载离线语音模型（sherpa-onnx VITS 中文）
         # 模型不进源码仓库，打包时现拉。放在 www/tts/ 下，cap sync 会拷进 public/，
         # Swift 侧从 Bundle.main/public/tts/<目录>/ 读 onnx + tokens.txt
