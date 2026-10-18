@@ -43,16 +43,22 @@ public class ShuyinAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizer
         } catch { notifyListeners("audioError", data: ["message": error.localizedDescription]) }
     }
 
+    private func voiceRank(_ item: AVSpeechSynthesisVoice) -> Int {
+        if #available(iOS 16.0, *), item.quality == .premium { return 0 }
+        if item.quality == .enhanced { return 1 }
+        return 2
+    }
+
     private func voice(_ code: String?) -> AVSpeechSynthesisVoice? {
         if let identifier = code,
            let exact = AVSpeechSynthesisVoice.speechVoices().first(where: { $0.identifier == identifier }),
            exact.language.lowercased().hasPrefix("zh") { return exact }
-        let preferred: String
-        switch code {
-        case "male", "zm_yunjian", "zm_yunxi", "zm_yunyang": preferred = "zh-CN"
-        default: preferred = "zh-CN"
-        }
-        return AVSpeechSynthesisVoice(language: preferred)
+        // 没指定（或指定的是 "system"）时，不要退回语种默认的紧凑音色 ——
+        // AVSpeechSynthesisVoice(language:) 拿到的往往是最难听的那一个。
+        // 改为在已安装的中文语音里挑音质最高的：premium > enhanced > standard。
+        let chinese = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.lowercased().hasPrefix("zh") }
+        if let best = chinese.min(by: { voiceRank($0) < voiceRank($1) }) { return best }
+        return AVSpeechSynthesisVoice(language: "zh-CN")
     }
 
     @objc func voices(_ call: CAPPluginCall) {
@@ -99,7 +105,8 @@ public class ShuyinAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizer
         utterance.rate = Float(max(0.28, min(0.82, 0.5 * speechRate)))
         utterance.volume = Float(max(0, min(1, speechVolume)))
         utterance.pitchMultiplier = Float(max(0.5, min(2, speechPitch)))
-        utterance.preUtteranceDelay = 0
+        // 队列中间留一口气，听感上不是一口气念完；第一条不延迟，避免点开就有空虚感
+        utterance.preUtteranceDelay = queueIndex > 0 ? 0.12 : 0
         utterance.postUtteranceDelay = 0
         // 锁屏要一条能动的进度条：系统语音不报时长，按约每秒 4.5 字估算。
         let estimate = max(1.0, Double((item["text"] ?? "").count) / 4.5)

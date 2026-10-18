@@ -44,12 +44,23 @@
     return '屏幕上的正文已经保留，不会变成空白页。';
   }
 
+  function blockedNote(index) {
+    try {
+      const url = window.currentBook?.chapters?.[index]?.url;
+      if (url && window.ShuyinDirectWeb?.isBlocked?.(url)) {
+        return '这个站点已累计多次失败，已自动加入黑名单；下次搜索不会再出现它。可在阅读页「书源」里解除。';
+      }
+    } catch {}
+    return '';
+  }
+
   function renderRetry(index, reason) {
     const node = ensureBar();
     if (!node) return;
     node.dataset.index = index == null ? '' : String(index);
     node.innerHTML = '<div class="chapter-retry-text"><strong>第 ' + (index == null ? '?' : index + 1) + ' 章没读下来</strong>' +
-      '<span>' + esc(reason) + '</span><small>' + esc(advise(reason)) + '</small></div>' +
+      '<span>' + esc(reason) + '</span><small>' + esc(advise(reason)) + '</small>' +
+      (blockedNote(index) ? '<small class="chapter-retry-blocked">' + esc(blockedNote(index)) + '</small>' : '') + '</div>' +
       '<div class="chapter-retry-actions"><button type="button" id="chapterRetryGo">重试这一章</button>' +
       '<button type="button" id="chapterRetryRepair">换源修复</button>' +
       '<button type="button" id="chapterRetryHide">知道了</button></div>';

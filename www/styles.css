@@ -383,3 +383,27 @@ mark.shuyin-tts-follow.zhijian-highlight{background:rgba(150,178,128,.5)}
 .offline-chapter-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .offline-chapter-row small{color:var(--muted);white-space:nowrap}
 .offline-chapter-row button{border:1px solid var(--line);border-radius:5px;background:transparent;color:#a4562f;padding:3px 8px;font-size:10px}
+/* r86 · 书源健康度与黑名单 */
+.source-row{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:8px;background:#fbfaf6}
+.source-row-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.source-row-main strong{font-size:12.5px;word-break:break-all}
+.source-badge{font-size:10px;padding:2px 7px;border-radius:99px;background:#eef1ea;color:#5f6f60}
+.source-badge.is-warn{background:#fbf0e2;color:#a8712f}
+.source-badge.is-blocked{background:#f7e4e0;color:#a04a36}
+.source-row-meta{margin-top:5px;font-size:11px;color:var(--muted)}
+.source-row-reason{margin-top:3px;font-size:10.5px;color:#8d8474;word-break:break-word}
+.source-row-actions{margin-top:7px;display:flex;gap:7px}
+.source-row-actions button{border:1px solid var(--line);border-radius:6px;background:transparent;color:#6c7569;padding:5px 10px;font-size:11px}
+.source-row-actions button.offline-danger{color:#a4562f;border-color:#e6d3c4}
+#sourceManual{flex:1;min-width:150px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:12px;background:#fff}
+.chapter-retry-blocked{color:#a4562f}
+/* r86 · 阅读观感：进度条与段落呼吸 */
+#readerProgress{position:fixed;left:0;right:0;top:0;height:3px;z-index:70;pointer-events:none;opacity:.9;transition:opacity .2s}
+#readerProgress.is-idle{opacity:0}
+#readerProgress i{display:block;height:100%;width:0;border-radius:0 2px 2px 0;background:linear-gradient(90deg,#9dbb9f,#5f7965);transition:width .12s linear}
+body.theme-night #readerProgress i,body.theme-black #readerProgress i{background:linear-gradient(90deg,#7f9c82,#4d6752)}
+.reader-content>p:first-of-type{text-indent:0}
+.reader-content>p{transition:background .2s}
+.reader-content ::selection{background:rgba(143,174,146,.34)}
+.reader-content h2.reader-chapter-heading{margin:1.2em 0 .9em;font:600 1.08em var(--serif);letter-spacing:.04em}
+.reader-content blockquote{margin:1em 0;padding:.3em 0 .3em 1em;border-left:2px solid rgba(95,121,101,.34);color:inherit;opacity:.86}

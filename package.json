@@ -1,6 +1,6 @@
 {
   "name": "shuyin-ios",
-  "version": "0.10.5",
+  "version": "0.10.6",
   "private": true,
   "description": "书隐 iOS 本地优先阅读 App 迁移工程",
   "scripts": {
@@ -8,7 +8,7 @@
     "ios:setup": "node scripts/ios-setup.cjs",
     "ios:sync": "npx cap sync ios && node scripts/register-native-plugins.cjs",
     "ios:open": "npx cap open ios",
-    "check": "node --check www/direct-web.js && node --check www/mobile-local-services.js && node --check www/mobile-enhancements.js && node --check www/local-backup.js && node --check www/native-secure-store-entry.js && node --check www/native-ocr-entry.js && node --check www/native-browser-entry.js && node --check www/native-share-entry.js && node --check www/app.js && node --check www/reader-extras.js && node --check www/nas-sync.js && node --check www/offline-formats.js && node --check www/reading-tools.js && node --check www/ebook-export.js && node --check www/sw.js && node --check www/reader-floating.js && node --check www/reader-native-audio.js && node --check www/reader-offline-download.js && node --check www/reader-nas-tts.js && node --check scripts/ios-setup.cjs && node --check scripts/copy-vendor.cjs && node --check scripts/bundle-native.cjs && node --check scripts/register-native-plugins.cjs && node --check www/reader-tts-plus.js && node --check www/reader-library-tools.js && node --check www/reader-chapter-guard.js && node --check www/reader-offline-manager.js && node --check scripts/pbx-add-plugins.cjs",
+    "check": "node --check www/direct-web.js && node --check www/mobile-local-services.js && node --check www/mobile-enhancements.js && node --check www/local-backup.js && node --check www/native-secure-store-entry.js && node --check www/native-ocr-entry.js && node --check www/native-browser-entry.js && node --check www/native-share-entry.js && node --check www/app.js && node --check www/reader-extras.js && node --check www/nas-sync.js && node --check www/offline-formats.js && node --check www/reading-tools.js && node --check www/ebook-export.js && node --check www/sw.js && node --check www/reader-floating.js && node --check www/reader-native-audio.js && node --check www/reader-offline-download.js && node --check www/reader-nas-tts.js && node --check scripts/ios-setup.cjs && node --check scripts/copy-vendor.cjs && node --check scripts/bundle-native.cjs && node --check scripts/register-native-plugins.cjs && node --check www/reader-tts-plus.js && node --check www/reader-library-tools.js && node --check www/reader-chapter-guard.js && node --check www/reader-offline-manager.js && node --check www/reader-source-guard.js && node --check www/reader-reading-polish.js && node --check scripts/pbx-add-plugins.cjs",
     "test": "node --test tests/*.test.cjs",
     "postinstall": "node scripts/copy-vendor.cjs && node scripts/bundle-native.cjs"
   },
