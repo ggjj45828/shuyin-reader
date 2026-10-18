@@ -6,6 +6,11 @@ name: build-ios
 on:
   push:
     branches: [main]
+    # 纯文档/说明改动不烧 macOS runner 额度（公开仓库免费但没必要）
+    paths-ignore:
+      - '**.md'
+      - '**.txt'
+      - 'LICENSE'
   workflow_dispatch:
 
 permissions:
