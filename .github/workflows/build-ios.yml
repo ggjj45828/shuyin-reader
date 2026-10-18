@@ -76,6 +76,12 @@ jobs:
           grep -n "packageProductDependencies\|packageReferences\|XCRemoteSwiftPackageReference\|XCSwiftPackageProductDependency" "$PBX" | head -20 || echo "（一个都没有）"
           echo "--- App target 原文 ---"
           awk '/Begin PBXNativeTarget section/,/End PBXNativeTarget section/' "$PBX" | head -60
+          echo "--- packageReferences 上下文 ---"
+          sed -n '158,172p' "$PBX"
+          echo "--- xcworkspace ---"
+          cat ios/App/App.xcworkspace/contents.xcworkspacedata 2>/dev/null || echo "无 workspace"
+          echo "--- Package.resolved ---"
+          find ios build -name "Package.resolved" 2>/dev/null | head -5
 
       - name: 下载离线语音模型（sherpa-onnx VITS 中文）
         # 模型不进源码仓库，打包时现拉。放在 www/tts/ 下，cap sync 会拷进 public/，
