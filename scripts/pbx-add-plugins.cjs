@@ -19,6 +19,7 @@ const PLUGINS = [
   'ShuyinSecureStorePlugin.swift',
   'ShuyinOCRPlugin.swift',
   'ShuyinSharePlugin.swift',
+  'ShuyinNeuralTtsPlugin.swift',
 ];
 
 function groupKeyByName(project, name) {
