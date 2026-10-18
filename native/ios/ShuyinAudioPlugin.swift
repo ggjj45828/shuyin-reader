@@ -12,6 +12,8 @@ public class ShuyinAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizer
         CAPPluginMethod(name: "resume", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "saveAudio", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "listAudio", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "deleteAudio", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "voices", returnType: CAPPluginReturnPromise)
     ]
 
@@ -208,6 +210,53 @@ public class ShuyinAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizer
                 }
             }
         } catch { call.reject("无法创建音频文件：\(error.localizedDescription)") }
+    }
+
+    private func audioFolder() -> URL {
+        let folder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("Audio", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return folder
+    }
+
+    // 供「离线资源」面板统计听书音频占用：只读目录，不碰正在生成的文件
+    @objc func listAudio(_ call: CAPPluginCall) {
+        let folder = audioFolder()
+        var files: [[String: Any]] = []
+        let keys: Set<URLResourceKey> = [.fileSizeKey, .contentModificationDateKey]
+        if let items = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: Array(keys), options: [.skipsHiddenFiles]) {
+            for url in items where url.pathExtension.lowercased() == "caf" {
+                let values = try? url.resourceValues(forKeys: keys)
+                files.append([
+                    "name": url.lastPathComponent,
+                    "bytes": values?.fileSize ?? 0,
+                    "at": Int((values?.contentModificationDate ?? Date()).timeIntervalSince1970 * 1000)
+                ])
+            }
+        }
+        files.sort { (($0["at"] as? Int) ?? 0) > (($1["at"] as? Int) ?? 0) }
+        call.resolve(["files": files, "folder": folder.path])
+    }
+
+    @objc func deleteAudio(_ call: CAPPluginCall) {
+        guard let name = call.getString("name"), !name.isEmpty else {
+            call.reject("缺少音频文件名")
+            return
+        }
+        // 只按文件名删除 Audio 目录内的 .caf，拒绝任何带路径的输入
+        let safe = (name as NSString).lastPathComponent
+        guard safe.lowercased().hasSuffix(".caf"), safe == name else {
+            call.reject("只允许删除 Audio 目录内的 .caf 音频")
+            return
+        }
+        let target = audioFolder().appendingPathComponent(safe)
+        do {
+            if FileManager.default.fileExists(atPath: target.path) {
+                try FileManager.default.removeItem(at: target)
+            }
+            call.resolve(["removed": safe])
+        } catch {
+            call.reject("删除失败：\(error.localizedDescription)")
+        }
     }
 
     private func installRemoteCommands() {
