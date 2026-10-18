@@ -49,7 +49,7 @@ jobs:
         # 之前就是这样静默失败：构建"成功"，但 App target 只编了 AppDelegate.swift。
         run: |
           set -e
-          PBX=ios/App/App/App.xcodeproj/project.pbxproj
+          PBX=ios/App/App.xcodeproj/project.pbxproj
           echo "pwd = $(pwd)"
           ls -l ios/App/App.xcodeproj/ || true
           [ -f "$PBX" ] || { echo "::error::pbxproj 不存在：$PBX"; exit 1; }
