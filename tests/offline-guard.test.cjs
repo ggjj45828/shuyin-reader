@@ -72,7 +72,7 @@ test('听书音频可枚举可删除，且拒绝路径穿越', () => {
 test('版本号三处一致', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
-  assert.equal(pkg.version, '0.10.8');
+  assert.equal(pkg.version, '0.10.9');
   assert.equal(lock.version, pkg.version, 'lock 顶层版本不一致');
   assert.equal(lock.packages[''].version, pkg.version, 'lock 根包版本不一致');
 });

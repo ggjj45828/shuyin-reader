@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { addPlugins } = require('./pbx-add-plugins.cjs');
+const { addSwiftPackage } = require('./pbx-add-spm.cjs');
 
 const root = path.resolve(__dirname, '..');
 if (process.platform !== 'darwin') throw Error('生成/编译 iOS 原生工程必须在 macOS 上运行；Windows 只能编辑和检查源码。');
@@ -20,6 +21,14 @@ const { added, skipped } = addPlugins({
 });
 if (added.length) console.log('已接入 App target：' + added.join(', '));
 if (skipped.length) console.log('已存在，跳过：' + skipped.join(', '));
+
+// ①b 离线语音需要 sherpa-onnx，走 Swift Package（binaryTarget 是官方 iOS 静态 xcframework）
+try {
+  const spm = addSwiftPackage({ projectPath: path.join(root, 'ios/App/App.xcodeproj/project.pbxproj') });
+  console.log(spm.added ? '已接入 Swift Package：sherpa-onnx' : 'Swift Package 已存在，跳过');
+} catch (error) {
+  console.log('接入 sherpa-onnx 失败（离线语音将不可用）：' + error.message);
+}
 
 // 插件**注册**不在这里：Capacitor 7 的 iOS 模板只有 AppDelegate.swift + Info.plist，
 // 没有 MainViewController / capacitorDidLoad 可覆写。注册改由

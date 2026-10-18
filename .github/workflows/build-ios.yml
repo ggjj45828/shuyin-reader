@@ -61,12 +61,33 @@ jobs:
           SZ=$(wc -c < "$PBX")
           echo "pbxproj = $SZ 字节"
           [ "$SZ" -gt 1000 ] || { echo "::error::pbxproj 只有 $SZ 字节"; exit 1; }
-          for f in ShuyinAudioPlugin ShuyinSecureStorePlugin ShuyinOCRPlugin ShuyinSharePlugin; do
+          for f in ShuyinAudioPlugin ShuyinSecureStorePlugin ShuyinOCRPlugin ShuyinSharePlugin ShuyinNeuralTtsPlugin; do
             n=$(grep -c "$f.swift in Sources" "$PBX" || true)
             echo "  $f -> $n 处"
             [ "$n" -ge 2 ] || { echo "::error::$f 没进 Sources 构建阶段（$n 处，应为 2）"; exit 1; }
           done
           echo "四个插件都在 Sources 构建阶段"
+
+      - name: 下载离线语音模型（sherpa-onnx VITS 中文）
+        # 模型不进源码仓库，打包时现拉。放在 www/tts/ 下，cap sync 会拷进 public/，
+        # Swift 侧从 Bundle.main/public/tts/<目录>/ 读 onnx + tokens.txt
+        run: |
+          set -euo pipefail
+          mkdir -p www/tts
+          URL="https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-zh_CN-chaowen-medium-int8.tar.bz2"
+          ok=0
+          for i in 1 2 3 4 5; do
+            if curl -sL -C - --retry 3 --retry-delay 3 -m 900 -o /tmp/model.tar.bz2 "$URL" && tar -tjf /tmp/model.tar.bz2 >/dev/null 2>&1; then ok=1; break; fi
+            echo "第 $i 次下载不完整，重试…"
+            sleep 3
+          done
+          [ "$ok" = "1" ] || { echo "::error::离线语音模型下载失败"; exit 1; }
+          tar -xjf /tmp/model.tar.bz2 -C www/tts
+          DIR=$(find www/tts -maxdepth 1 -mindepth 1 -type d | head -1)
+          echo "模型目录：$DIR"
+          ls -lh "$DIR"
+          python3 scripts/onnx-json-to-tokens.py "$DIR"
+          du -sh www/tts
 
       - name: 同步 web 资源、Capacitor 插件并登记 App 内原生插件
         # ios:sync = cap sync ios + register-native-plugins.cjs

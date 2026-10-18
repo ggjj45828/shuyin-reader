@@ -26,6 +26,7 @@ const PLUGINS = [
   'ShuyinSecureStorePlugin',  // DeepSeek Key 存 Keychain
   'ShuyinOCRPlugin',          // 扫描版 PDF 走 Vision
   'ShuyinSharePlugin',        // 系统分享面板导出 EPUB
+  'ShuyinNeuralTtsPlugin',    // 离线神经语音（sherpa-onnx）
 ];
 
 const json = JSON.parse(fs.readFileSync(configFile, 'utf8'));
