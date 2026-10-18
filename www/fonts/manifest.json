@@ -1,0 +1,30 @@
+[
+ {
+  "id": "marker",
+  "label": "霞鹜漫黑",
+  "family": "Shuyin Marker",
+  "file": "marker.woff2",
+  "bytes": 550344
+ },
+ {
+  "id": "xihei",
+  "label": "霞鹜新晰黑",
+  "family": "Shuyin XiHei",
+  "file": "xihei.woff2",
+  "bytes": 845728
+ },
+ {
+  "id": "smiley",
+  "label": "得意黑",
+  "family": "Shuyin Smiley",
+  "file": "smiley.woff2",
+  "bytes": 892432
+ },
+ {
+  "id": "iansui",
+  "label": "芫荽",
+  "family": "Shuyin Iansui",
+  "file": "iansui.woff2",
+  "bytes": 1151356
+ }
+]

@@ -414,3 +414,6 @@ body.theme-night #readerProgress i,body.theme-black #readerProgress i{background
 .reader-font-picker span{opacity:.72}
 .reader-font-picker select{border:0;background:transparent;color:inherit;font-size:11px;padding:0 2px;max-width:112px}
 .reader-font-picker select:focus{outline:none}
+/* r88 · 阅读位置号 */
+.reader-loc{margin:26px 0 0;text-align:center;font-size:10.5px;letter-spacing:.08em;color:var(--muted);opacity:.82}
+body.theme-night .reader-loc{color:#8f948a}
