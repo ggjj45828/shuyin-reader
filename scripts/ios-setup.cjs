@@ -57,32 +57,11 @@ for (const name of plugins) {
 
 project.writeSync();
 
-// 注册插件实例：MainViewController 里必须有四个 registerPluginInstance
-const controller = path.join(destDir, 'MainViewController.swift');
-let src = fs.readFileSync(controller, 'utf8');
-const needed = [
-  'registerPluginInstance(ShuyinAudioPlugin()',
-  'registerPluginInstance(ShuyinSecureStorePlugin()',
-  'registerPluginInstance(ShuyinOCRPlugin()',
-  'registerPluginInstance(ShuyinSharePlugin()',
-];
-if (!needed.every((token) => src.includes(token))) {
-  const body = [
-    '    override func capacitorDidLoad() {',
-    '        bridge?.registerPluginInstance(ShuyinAudioPlugin())',
-    '        bridge?.registerPluginInstance(ShuyinSecureStorePlugin())',
-    '        bridge?.registerPluginInstance(ShuyinOCRPlugin())',
-    '        bridge?.registerPluginInstance(ShuyinSharePlugin())',
-    '    }',
-  ].join('\n');
-  if (src.includes('override func capacitorDidLoad()')) {
-    src = src.replace(/override func capacitorDidLoad\(\)\s*\{[\s\S]*?\n\s*\}/, body.trim());
-  } else {
-    src = src.replace(/\}\s*$/, body + '\n}\n');
-  }
-  fs.writeFileSync(controller, src);
-  console.log('已写入 capacitorDidLoad 插件注册');
-}
+// 插件注册**不在这里**。Capacitor 7 的 iOS 模板只有 AppDelegate.swift + Info.plist，
+// 没有 MainViewController，没有 capacitorDidLoad 可以覆写；注册改由
+// `scripts/register-native-plugins.cjs` 写进 capacitor.config.json 的 packageClassList
+// （必须在 `cap sync` 之后跑，见 package.json 的 ios:sync）。
+console.log('插件文件已接入 App target；注册由 register-native-plugins.cjs 在 cap sync 之后完成');
 
 // Info.plist：后台音频、文件共享、本地网络 HTTP
 const plist = path.join(destDir, 'Info.plist');

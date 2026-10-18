@@ -43,8 +43,23 @@ jobs:
         # Audio / OCR / SecureStore / Share 四个 Swift 插件接进 pbxproj 与 MainViewController
         run: npm run ios:setup
 
-      - name: 同步 web 资源与 Capacitor 插件
-        run: npx cap sync ios
+      - name: 同步 web 资源、Capacitor 插件并登记 App 内原生插件
+        # ios:sync = cap sync ios + register-native-plugins.cjs
+        # 后者把四个 App 内插件写进 capacitor.config.json 的 packageClassList，
+        # 必须在 cap sync 之后跑，否则会被覆盖
+        run: npm run ios:sync
+
+      - name: 确认四个原生插件已进入注册列表
+        run: |
+          node -e '
+          const j = require("./ios/App/App/capacitor.config.json");
+          const want = ["ShuyinAudioPlugin", "ShuyinSecureStorePlugin", "ShuyinOCRPlugin", "ShuyinSharePlugin"];
+          const list = j.packageClassList || [];
+          console.log("packageClassList: " + list.join(", "));
+          const missing = want.filter((x) => !list.includes(x));
+          if (missing.length) { console.error("缺少：" + missing.join(", ")); process.exit(1); }
+          console.log("四个插件都在");
+          '
 
       - name: 编译（关闭签名，出未签名包）
         run: |
