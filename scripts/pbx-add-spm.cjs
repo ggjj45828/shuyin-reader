@@ -52,9 +52,15 @@ function addSwiftPackage({ projectPath, url = PACKAGE_URL, version = PACKAGE_VER
   });
 
   // 4) PBXProject.packageReferences
+  // 注意：Xcode 15 的模板里本来就有一条**空的** packageReferences = ( );，
+  // 只判断键名存在会直接跳过，写出来的引用是空的 —— 编译时报
+  // "Missing package product"，但 pbxproj 看起来什么都有。必须单独处理空列表。
   const projectRe = /(isa = PBXProject;[\s\S]*?)(\n\t\t\};)/;
   if (!projectRe.test(text)) throw Error('找不到 PBXProject');
   text = text.replace(projectRe, (full, body, tail) => {
+    if (/packageReferences = \(\s*\);/.test(body)) {
+      return body.replace(/packageReferences = \(\s*\);/, `packageReferences = (\n\t\t\t\t${refId} /* XCRemoteSwiftPackageReference "${product}" */,\n\t\t\t);`) + tail;
+    }
     if (body.includes('packageReferences')) return full;
     return body + `\n\t\t\tpackageReferences = (\n\t\t\t\t${refId} /* XCRemoteSwiftPackageReference "${product}" */,\n\t\t\t);` + tail;
   });
