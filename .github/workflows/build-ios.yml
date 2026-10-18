@@ -50,7 +50,12 @@ jobs:
         run: |
           set -e
           PBX=ios/App/App/App.xcodeproj/project.pbxproj
-          test -s "$PBX" || { echo "::error::pbxproj 为空"; exit 1; }
+          echo "pwd = $(pwd)"
+          ls -l ios/App/App.xcodeproj/ || true
+          [ -f "$PBX" ] || { echo "::error::pbxproj 不存在：$PBX"; exit 1; }
+          SZ=$(wc -c < "$PBX")
+          echo "pbxproj = $SZ 字节"
+          [ "$SZ" -gt 1000 ] || { echo "::error::pbxproj 只有 $SZ 字节"; exit 1; }
           for f in ShuyinAudioPlugin ShuyinSecureStorePlugin ShuyinOCRPlugin ShuyinSharePlugin; do
             n=$(grep -c "$f.swift in Sources" "$PBX" || true)
             echo "  $f -> $n 处"

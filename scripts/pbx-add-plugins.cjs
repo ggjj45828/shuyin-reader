@@ -59,6 +59,12 @@ function addPlugins({ projectPath, sourceDir, destDir }) {
   }
   fs.writeFileSync(projectPath, serialized, 'utf8');
 
+  // 立刻回读，确认真的落到盘上（writeSync 只序列化不写盘，这一步是唯一的保障）
+  const onDisk = fs.statSync(projectPath).size;
+  console.log('pbxproj 写入 ' + projectPath);
+  console.log('  序列化 ' + serialized.length + ' 字符，磁盘 ' + onDisk + ' 字节');
+  if (onDisk < 1000) throw new Error('pbxproj 落盘失败，磁盘上只有 ' + onDisk + ' 字节');
+
   return { added, skipped };
 }
 
