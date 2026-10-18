@@ -1,15 +1,16 @@
-const CACHE = 'shuyin-reading-shell-v010k';
+const CACHE = 'shuyin-reading-shell-v010l';
 const BASE = new URL('./', self.registration.scope);
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './shuyin-icon.svg',
   './icons/shuyin-192.png', './icons/shuyin-512.png', './icons/apple-touch-icon.png',
-  './styles.css?v=20261018-r86', './direct-web.js?v=20261018-r86', './app.js?v=20261018-r86',
+  './styles.css?v=20261018-r87', './direct-web.js?v=20261018-r86', './app.js?v=20261018-r87',
   './reader-extras.js?v=20261017-r53', './reader-mobile-fix.js?v=20261017-r53',
   './reader-nas-tts.js?v=20261018-r62', './reader-floating.js?v=20261017-r69',
   './reader-tts-plus.js?v=20261018-r70', './reader-library-tools.js?v=20261018-r70',
   './reader-chapter-guard.js?v=20261018-r85', './reader-offline-manager.js?v=20261018-r85',
   './reader-source-guard.js?v=20261018-r86',
   './reader-reading-polish.js?v=20261018-r86',
+  './reader-font-choice.js?v=20261018-r87',
   './vendor/jszip.min.js', './vendor/mammoth.browser.min.js', './vendor/pdf.mjs', './vendor/pdf.worker.mjs',
   './offline-formats.js', './local-backup.js', './reading-tools.js',
   './vendor/shuyin-browser.js', './vendor/shuyin-audio.js', './vendor/shuyin-secure-store.js', './vendor/shuyin-share.js', './vendor/shuyin-ocr.js',

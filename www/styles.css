@@ -407,3 +407,10 @@ body.theme-night #readerProgress i,body.theme-black #readerProgress i{background
 .reader-content ::selection{background:rgba(143,174,146,.34)}
 .reader-content h2.reader-chapter-heading{margin:1.2em 0 .9em;font:600 1.08em var(--serif);letter-spacing:.04em}
 .reader-content blockquote{margin:1em 0;padding:.3em 0 .3em 1em;border-left:2px solid rgba(95,121,101,.34);color:inherit;opacity:.86}
+/* r87 · 正文字体选择 */
+.reader-content{font-family:var(--reader-font,var(--serif))}
+.reader-content h2.reader-chapter-heading{font-family:var(--reader-font,var(--serif))}
+.reader-font-picker{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:11px;color:#6c7569}
+.reader-font-picker span{opacity:.72}
+.reader-font-picker select{border:0;background:transparent;color:inherit;font-size:11px;padding:0 2px;max-width:112px}
+.reader-font-picker select:focus{outline:none}
