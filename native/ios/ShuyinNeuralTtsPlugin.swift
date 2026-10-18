@@ -1,6 +1,7 @@
 import AVFoundation
 import Capacitor
 import SherpaOnnx
+import SherpaOnnxC
 
 /// 离线神经语音（sherpa-onnx VITS）。
 /// 模型放在 `public/tts/<模型目录>/`，由 CI 在打包时下载，不进源码仓库。
