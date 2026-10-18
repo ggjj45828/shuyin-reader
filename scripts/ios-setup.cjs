@@ -35,6 +35,20 @@ try {
 // scripts/register-native-plugins.cjs 写进 capacitor.config.json 的 packageClassList，
 // 且必须在 `cap sync` **之后**跑（见 package.json 的 ios:sync）。
 
+// ①c 最低系统抬到 iOS 15.0：sherpa-onnx 的 xcframework 就是 15.0 起的，
+// 留在 14.0 会报 "compiling for iOS 14.0, but module 'SherpaOnnx' has a minimum deployment target of iOS 15.0"
+try {
+  const pbxPath = path.join(root, 'ios/App/App.xcodeproj/project.pbxproj');
+  const pbx = fs.readFileSync(pbxPath, 'utf8');
+  const bumped = pbx.replace(/IPHONEOS_DEPLOYMENT_TARGET = 1[0-4]\.\d;/g, 'IPHONEOS_DEPLOYMENT_TARGET = 15.0;');
+  if (bumped !== pbx) {
+    fs.writeFileSync(pbxPath, bumped);
+    console.log('最低系统已抬到 iOS 15.0');
+  }
+} catch (error) {
+  console.log('抬高最低系统失败：' + error.message);
+}
+
 // ② 版本号：Capacitor 模板默认 1.0 / 1，必须从 package.json 灌进去，否则包内全是 1.0
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const plist = path.join(destDir, 'Info.plist');
