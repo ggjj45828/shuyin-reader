@@ -1,0 +1,12 @@
+const fs=require('node:fs');const path=require('node:path');
+const from=require.resolve('jszip/dist/jszip.min.js');
+const to=path.join(__dirname,'../www/vendor/jszip.min.js');
+fs.mkdirSync(path.dirname(to),{recursive:true});fs.copyFileSync(from,to);
+console.log('Bundled offline EPUB parser:',to);
+const copy=(pkg,source,target)=>{const file=require.resolve(`${pkg}/${source}`);const dest=path.join(__dirname,'../www/vendor',target);fs.copyFileSync(file,dest);console.log('Bundled offline parser:',dest)};
+copy('pdfjs-dist','build/pdf.mjs','pdf.mjs');
+copy('pdfjs-dist','build/pdf.worker.mjs','pdf.worker.mjs');
+const mammothMain=require.resolve('mammoth');
+const mammothBrowser=path.resolve(path.dirname(mammothMain),'../mammoth.browser.min.js');
+const mammothDest=path.join(__dirname,'../www/vendor/mammoth.browser.min.js');
+fs.copyFileSync(mammothBrowser,mammothDest);console.log('Bundled offline parser:',mammothDest);

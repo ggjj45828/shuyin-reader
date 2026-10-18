@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#eef4ec" />
+  <link rel="manifest" href="./manifest.webmanifest" /><link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" /><meta name="apple-mobile-web-app-title" content="书隐" /><meta name="theme-color" content="#f4f0e7" />
+  <title>书隐 · 私人智能阅读器</title>
+  <link rel="stylesheet" href="./styles.css?v=20261017-r83" />
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#home" aria-label="书隐首页"><span class="brand-mark">隐</span><span>书隐</span></a>
+      <div class="side-label">阅读空间</div>
+      <nav class="nav-list" aria-label="主导航">
+        <button class="nav-item active" data-view="home"><span class="nav-icon">⌂</span>书架</button>
+        <button class="nav-item" data-view="discover"><span class="nav-icon">⌕</span>发现与搜索</button>
+        <button class="nav-item" data-view="import"><span class="nav-icon">＋</span>导入书籍</button>
+      </nav>
+      <div class="side-divider"></div>
+      <div class="side-label">我的书架 <button id="addShelf" class="tiny-add" title="新建书架">＋</button></div>
+      <div id="shelfList" class="shelf-list"></div>
+      <div class="sidebar-bottom"><button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span>设置与同步</button><div class="sync-status"><span class="status-dot"></span><span id="syncLabel">仅此设备</span></div></div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar"><div class="breadcrumbs"><span>书隐</span><span class="crumb-slash">/</span><strong id="pageTitle">书架</strong></div><div class="top-actions"><button id="topSearch" class="icon-button" aria-label="搜索">⌕</button><button class="avatar" title="本地阅读空间">林</button></div></header>
+      <section id="view-home" class="view active-view">
+        <div class="welcome-row"><div><p class="eyebrow">YOUR PERSONAL LIBRARY</p><h1>每一本好书，<em>都有自己的位置。</em></h1><p class="subhead">导入自己的书，整理成舒服的阅读体验。</p></div><button class="primary-button" data-go="import"><span>＋</span> 导入书籍</button></div>
+        <div class="continue-card" id="continueCard"></div>
+        <div class="section-heading"><div><h2>最近在读</h2><p>从上次停下的地方继续</p></div><button class="text-button" id="showAll">查看书库 <span>→</span></button></div>
+        <div id="recentBooks" class="book-grid"></div>
+        <div class="section-heading history-heading"><div><h2>阅读记录</h2><p>最近打开的小说与阅读进度</p></div><button class="text-button" id="clearReadingHistory">清除记录</button></div>
+        <div id="readingHistory" class="history-list"></div>
+        <div class="section-heading library-heading"><div><h2>我的书库</h2><p id="bookCount">0 本书</p></div><div class="library-tools"><label class="search-field small-search"><span>⌕</span><input id="librarySearch" type="search" placeholder="搜索书名或作者" /></label><select id="sortBooks" aria-label="排序"><option value="recent">最近添加</option><option value="title">书名排序</option></select><button id="toggleManageBooks" class="secondary-button" type="button">多选</button></div></div>
+        <div id="bookLibraryTools" class="sy-library-tools"><label>阅读状态 <select id="bookStatusFilter"><option value="all">全部状态</option><option value="unread">未开始</option><option value="reading">在读</option><option value="finished">已读完</option></select></label><label>标签 <select id="bookTagFilter"><option value="all">全部标签</option></select></label><button id="showDuplicateBooks" type="button" class="text-button">检查重复书</button></div>
+        <div id="bookSelectionBar" class="book-selection-bar hidden"><span id="selectedBooksCount">已选 0 本</span><button id="selectAllBooks" type="button">全选/反选</button><select id="bulkMoveShelf" aria-label="移动到书架"><option value="">移动到书架…</option></select><input id="bulkAddTags" placeholder="批量添加标签（逗号分隔）"><button id="applyBulkBooks" type="button">应用</button><button id="deleteSelectedBooks" type="button" class="danger-button">删除所选</button><button id="cancelManageBooks" type="button">完成</button></div>
+        <div id="allBooks" class="book-grid all-books"></div>
+        <div id="emptyLibrary" class="empty-state hidden"><div class="empty-icon">▤</div><h3>书架还空着</h3><p>导入 EPUB、TXT、Markdown 或 PDF，开始整理你的私人书库。</p><button class="primary-button" data-go="import">导入第一本书</button></div>
+      </section>
+
+      <section id="view-discover" class="view">
+        <div class="page-intro"><p class="eyebrow">DISCOVER</p><h1>找一本想读的书</h1><p>默认只显示搜索候选，不自动试读或加入书架；你可以选择试读、手动入架、复制链接或在书隐内打开。</p></div>
+        <form id="discoverForm" class="discover-search"><span>⌕</span><input id="discoverInput" placeholder="输入书名、作者或关键词" /><button id="discoverSubmit" class="primary-button" type="submit">搜索小说</button><button id="cancelSearch" class="secondary-button hidden" type="button">停止搜索</button></form>
+        <p id="searchModeHint" class="search-mode-hint">iPhone 可直接联网搜索书源；NAS 仅用于可选书架与进度同步。</p>
+        <div class="connectivity-card"><div><strong>搜索服务检测</strong><span id="googleTestResult">测试 iPhone 到公开搜索引擎的连接</span></div><button id="testGoogle" class="secondary-button" type="button">测试 Google</button></div>
+        <div id="searchHistoryBlock" class="search-history-block hidden"><div class="history-topline"><strong>搜索历史</strong><button id="clearSearchHistory" class="text-button">清空</button></div><div id="searchHistory" class="search-history"></div></div>
+        <div class="notice"><span>ⓘ</span><div><strong>搜索网页，再整理成干净正文</strong><p>可选的自动试读筛选会在手机上检查候选；单条试读失败后可删除并补充候选，不会自动轮试。登录、验证码或网站访问限制仍需在浏览器中处理。</p></div></div>
+        <div class="section-heading"><div><h2>网页链接导入</h2><p>仅支持公开且允许读取的正文页面</p></div></div>
+        <form id="urlForm" class="url-card"><div class="url-input-wrap"><span>↗</span><input id="urlInput" type="url" placeholder="粘贴小说目录页、章节页，或 Google 搜索结果链接" required /></div><button id="urlSubmitButton" class="secondary-button">读取页面</button><p id="googleSerpHelp" class="google-serp-help hidden">已识别搜索词。点击后只会搜索候选；试读筛选需手动勾选，提取需你选择。</p><p id="urlMessage" class="form-hint">粘贴公开目录/章节链接可读取正文；搜索结果不会自动加入书架，可手动试读或加入。</p></form>
+        <section class="manual-import-card"><button id="toggleManualImport" class="text-button" type="button">少数网站要求真人验证？备用手动导入</button><div id="manualImportPanel" class="manual-import-panel hidden"><label class="field-label">书名或章节名<input id="manualImportTitle" type="text" placeholder="例如：少年阿宾 · 第1章" /></label><label class="field-label">网页正文<textarea id="manualImportContent" rows="9" placeholder="仅在目标网站要求真人验证、程序无法读取时使用。"></textarea></label><button id="saveManualImport" class="primary-button" type="button">保存正文到书架</button><p class="form-hint">普通网页由程序自动搜索和提取；此处只作为站点访问限制时的最后备用方式。</p></div></section>
+        <div id="searchResults" class="result-list"></div>
+      </section>
+
+      <section id="view-import" class="view">
+        <div class="page-intro"><p class="eyebrow">ADD TO LIBRARY</p><h1>导入你的书</h1><p>文件会保存在当前浏览器设备中，不会自动上传到第三方。</p></div>
+        <label id="dropZone" class="drop-zone"><input id="fileInput" type="file" accept=".epub,.txt,.md,.markdown,.pdf,.docx,.html,.htm,.fb2,application/epub+zip,text/plain,text/markdown,application/pdf" multiple /><span class="upload-icon">↑</span><strong>拖放文件到这里，或 <u>浏览文件</u></strong><span>支持 EPUB、TXT、Markdown、PDF、DOCX、HTML、FB2</span><small>每本书最大 32 MB</small></label>
+        <div class="import-note"><span>✳</span><div><strong>导入后统一排版阅读</strong><p>App 本地支持 TXT、Markdown、EPUB、HTML、FB2、PDF 和 DOCX；扫描版 PDF 由 iOS Vision 在本机逐页 OCR，不会上传文件。</p></div></div>
+        <div id="importQueue" class="import-queue"></div>
+      </section>
+
+      <section id="view-settings" class="view">
+        <div class="page-intro"><p class="eyebrow">PREFERENCES</p><h1>设置与同步</h1><p>管理阅读习惯、备份和 NAS 连接。</p></div>
+        <div class="settings-layout"><div class="settings-nav"><button class="settings-tab selected">阅读偏好</button><button class="settings-tab">数据与备份</button><button class="settings-tab">NAS 同步</button></div>
+          <div class="settings-content"><div class="setting-card" id="settings-reading"><h2>阅读偏好</h2><p>调整书页的文字显示。</p><div class="setting-row"><div><strong>字体大小</strong><span>正文显示大小</span></div><div class="font-control"><button id="fontDown">A−</button><span id="fontSizeLabel">18px</span><button id="fontUp">A＋</button></div></div><div class="setting-row"><div><strong>阅读背景</strong><span>选择更舒适的纸张色</span></div><div class="theme-options"><button class="theme-chip selected" data-theme="paper">暖纸</button><button class="theme-chip" data-theme="white">白昼</button><button class="theme-chip" data-theme="green">松绿</button><button class="theme-chip" data-theme="night">夜读</button></div></div></div>
+          <div class="setting-card" id="settings-nas"><h2>NAS 书库</h2><p>部署在极空间后，书籍、阅读进度和书架都会保存在 NAS；iPhone 与其他设备访问同一地址即可共用。</p><div class="nas-deploy-note"><span class="status-dot" id="nasStatusDot"></span><span id="nasStatusText">当前使用本机浏览器书库</span></div><p class="version-note">书隐 iOS · 本机阅读与 NAS 可选双向同步</p><p class="form-hint">使用极空间远程访问或你自己的 HTTPS 隧道打开阅读器地址。阅读器不需要登录密码，请勿将服务直接暴露到公网。</p></div>
+          <div class="setting-card" id="settings-backup"><h2>书库备份</h2><p>导出书目与阅读进度，便于迁移或备份。</p><div class="backup-actions"><button id="exportLibrary" class="secondary-button">导出书库备份</button><label class="secondary-button import-backup">导入备份<input id="backupInput" type="file" accept="application/json" /></label></div></div></div></div>
+      </section>
+
+      <section id="reader" class="reader-view hidden"><header class="reader-toolbar"><button id="closeReader" class="icon-button">←</button><span id="readerBookTitle">正在阅读</span><button id="addCurrentBookToShelf" class="reader-source-button hidden" type="button">＋ 入架</button><div><button id="readerFontDown" class="icon-button">A−</button><button id="readerFontUp" class="icon-button">A＋</button><button id="readerTheme" class="icon-button">◐</button><button id="readerRepairChapter" class="reader-source-button" title="尝试匹配其他网站的同编号章节">修复本章</button><button id="readerChangeSource" class="reader-source-button" title="当前书源不完整？直接换源">换源</button></div></header><div class="reader-mobile-actions"><select id="readerMode" aria-label="阅读方式"><option value="scroll">滚动阅读</option><option value="page">翻页阅读</option></select><button id="readerMobileTts" type="button" aria-label="听书">▶ 听书</button><button id="readerMobileToc" type="button">目录</button><button id="readerMobileMore" type="button" aria-expanded="false" aria-controls="readerMobileMenu">☷ 更多</button></div><div id="readerMobileMenu" class="reader-mobile-menu hidden" aria-label="阅读工具"><div id="readerMobileMenuItems" class="reader-mobile-menu-items"></div></div><div class="reader-chapter-controls"><span id="readerQuality" class="reader-quality" title="仅供参考"></span><button id="readerTts" class="reader-tool-button">▶ 听书</button><button id="readerTtsSettings" class="reader-tool-button">声音设置</button><button id="readerBookmark" class="reader-tool-button">☆ 书签</button><button id="readerNotes" class="reader-tool-button">笔记</button><button id="readerStats" class="reader-tool-button">阅读统计</button><button id="readerAi" class="reader-tool-button">AI 助手</button><button id="readerCacheStart" class="reader-tool-button">缓存全书</button><button id="readerExportEpub" class="reader-tool-button">导出 EPUB</button><button id="readerCacheCancel" class="reader-tool-button hidden">暂停缓存</button><span id="readerCacheProgress" class="reader-cache-progress"></span><button id="readerPrev" class="reader-tool-button">上一章</button><button id="readerToc" class="reader-tool-button">章节目录</button><button id="readerNext" class="reader-tool-button">下一章</button></div><div id="readerSourcePanel" class="reader-source-panel hidden"><div class="reader-source-head"><strong>更换当前书源</strong><button id="readerSourceClose" type="button">✕</button></div><p id="readerSourceStatus">查找同名小说的其他来源，不用退出阅读。</p><div id="readerSourceList"></div><button id="readerSourceRetry" type="button" class="reader-source-retry">重新搜索书源</button></div><div id="readerExtraPanel" class="reader-extra-panel hidden"><div class="reader-source-head"><strong id="readerExtraTitle">阅读工具</strong><button type="button" id="readerExtraClose" aria-label="关闭">✕</button></div><div id="readerExtraBody"></div></div><div id="readerTocPanel" class="reader-toc-panel hidden"><div class="reader-toc-title">章节目录 <button type="button" id="sy-toc-close" aria-label="关闭章节目录">✕ 关闭</button></div><div id="readerTocList"></div></div><article class="reader-page"><div id="readerMeta" class="reader-meta"></div><h1 id="readerTitle"></h1><div id="readerContent" class="reader-content"></div><div id="readerFooter" class="reader-footer"></div></article></section>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="./direct-web.js?v=20261017-r67"></script><script src="./app.js?v=20261017-r83"></script>
+  
+<script src="./reader-extras.js?v=20261017-r53" defer></script><script src="./reader-mobile-fix.js?v=20261017-r53" defer></script><script src="./reader-nas-tts.js?v=20261017-r61" defer></script><script src="./reader-floating.js?v=20261017-r69" defer></script><script src="./vendor/jszip.min.js"></script><script src="./vendor/mammoth.browser.min.js"></script><script type="module">import * as pdfjsLib from './vendor/pdf.mjs';pdfjsLib.GlobalWorkerOptions.workerSrc=new URL('./vendor/pdf.worker.mjs',import.meta.url).toString();window.pdfjsLib=pdfjsLib;</script><script src="./offline-formats.js"></script><script src="./local-backup.js" defer></script><script src="./reading-tools.js" defer></script><script src="./vendor/shuyin-browser.js"></script><script src="./vendor/shuyin-audio.js"></script><script src="./vendor/shuyin-secure-store.js"></script><script src="./vendor/shuyin-share.js"></script><script src="./vendor/shuyin-ocr.js"></script><script src="./nas-sync.js" defer></script><script src="./ebook-export.js" defer></script><script src="./reader-offline-download.js" defer></script><script src="./reader-native-audio.js" defer></script><script src="./shuyin-native.js" defer></script><script src="./mobile-local-services.js?v=20261017-r67" defer></script><script src="./mobile-enhancements.js?v=20261017-r69" defer></script><script>if('serviceWorker'in navigator&&!window.Capacitor?.isNativePlatform?.()&&location.protocol==='https:')navigator.serviceWorker.register(new URL('./sw.js',location.href),{scope:new URL('./',location.href).pathname}).catch(error=>console.warn('书隐离线壳注册失败',error));</script></body>
+</html>

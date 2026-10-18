@@ -1,0 +1,33 @@
+{
+  "name": "shuyin-ios",
+  "version": "0.10.2",
+  "private": true,
+  "description": "书隐 iOS 本地优先阅读 App 迁移工程",
+  "scripts": {
+    "ios:add": "npx cap add ios",
+    "ios:setup": "node scripts/ios-setup.cjs",
+    "ios:sync": "npx cap sync ios",
+    "ios:open": "npx cap open ios",
+    "check": "node --check www/direct-web.js && node --check www/mobile-local-services.js && node --check www/mobile-enhancements.js && node --check www/local-backup.js && node --check www/native-secure-store-entry.js && node --check www/native-ocr-entry.js && node --check www/native-browser-entry.js && node --check www/native-share-entry.js && node --check www/app.js && node --check www/reader-extras.js && node --check www/nas-sync.js && node --check www/offline-formats.js && node --check www/reading-tools.js && node --check www/ebook-export.js && node --check www/sw.js && node --check www/reader-floating.js && node --check www/reader-native-audio.js && node --check www/reader-offline-download.js && node --check www/reader-nas-tts.js && node --check scripts/ios-setup.cjs && node --check scripts/copy-vendor.cjs && node --check scripts/bundle-native.cjs",
+    "test": "node --test tests/*.test.cjs",
+    "postinstall": "node scripts/copy-vendor.cjs && node scripts/bundle-native.cjs"
+  },
+  "dependencies": {
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/browser": "^7.0.5",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/filesystem": "^7.0.0",
+    "@capacitor/haptics": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
+    "@capacitor/preferences": "^7.0.0",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.9.0",
+    "pdfjs-dist": "^4.10.38"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.9.3",
+    "xcode": "^3.0.1"
+  }
+}

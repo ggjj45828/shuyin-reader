@@ -1,0 +1,118 @@
+name: build-ios
+
+# 没有 Mac，就用 GitHub 的 macOS runner 编译。
+# 公开仓库的 macOS 额度免费且不限时；私有仓库会按 10 倍扣分钟数。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 环境信息
+        run: |
+          sw_vers
+          xcodebuild -version
+          echo "node $(node -v) / npm $(npm -v)"
+          pod --version || echo "CocoaPods 未预装"
+
+      - name: 安装依赖
+        run: npm ci --no-audit --no-fund
+
+      - name: 源码自检与单元测试
+        run: |
+          npm run check
+          npm test
+
+      - name: 生成 iOS 工程并登记四个原生插件
+        # scripts/ios-setup.cjs 内部会 cap add ios，再把
+        # Audio / OCR / SecureStore / Share 四个 Swift 插件接进 pbxproj 与 MainViewController
+        run: npm run ios:setup
+
+      - name: 同步 web 资源与 Capacitor 插件
+        run: npx cap sync ios
+
+      - name: 编译（关闭签名，出未签名包）
+        run: |
+          set +e
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            build > build.log 2>&1
+          code=$?
+          echo "--- xcodebuild exit=$code ---"
+          echo "--- error 行 ---"
+          grep -n "error:" build.log | head -60 || true
+          echo "--- 日志尾部 ---"
+          tail -n 60 build.log
+          exit $code
+
+      - name: 打包未签名 IPA
+        run: |
+          APP="$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -n 1)"
+          echo "APP=$APP"
+          test -n "$APP"
+          rm -rf dist
+          mkdir -p dist/Payload
+          # macOS 上必须用 cp -R：cp -r 会把 framework 里的符号链接解引用，签名/加载会出问题
+          cp -R "$APP" dist/Payload/
+          cd dist
+          zip -qry Shuyin-unsigned.ipa Payload
+          ls -l Shuyin-unsigned.ipa
+          echo "--- Payload 结构 ---"
+          find Payload -maxdepth 2 | head -30
+
+      - name: 记录包体信息
+        run: |
+          APP="$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -n 1)"
+          {
+            echo "app_path=$APP"
+            echo "ipa_size=$(stat -f%z dist/Shuyin-unsigned.ipa)"
+            echo "--- Info.plist 关键字段 ---"
+            /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" || true
+            /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist" || true
+            /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist" || true
+            /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist" || true
+            /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist" || true
+            /usr/libexec/PlistBuddy -c 'Print :UIBackgroundModes' "$APP/Info.plist" || true
+            echo "--- 可执行文件 ---"
+            file "$APP/App"
+            echo "--- 插件是否进包 ---"
+            ls "$APP" | grep -i shuyin || echo "(插件是编进主二进制的，不在顶层)"
+            echo "--- 链接的 framework ---"
+            otool -L "$APP/App" | head -25
+          } | tee build-info.txt
+
+      - name: 上传产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shuyin-unsigned-ipa
+          path: |
+            dist/Shuyin-unsigned.ipa
+            build-info.txt
+            build.log
+          if-no-files-found: warn
+          retention-days: 30
