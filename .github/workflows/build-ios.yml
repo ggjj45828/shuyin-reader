@@ -116,6 +116,16 @@ jobs:
           console.log("四个插件都在");
           '
 
+      - name: 解析 Swift Package 依赖
+        # 不解析就会报 "Missing package product 'sherpa-onnx'"——
+        # pbxproj 里的四段都对，但包本身从没被 fetch 下来。
+        run: |
+          set -o pipefail
+          xcodebuild -resolvePackageDependencies \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -clonedSourcePackagesDirPath build/SourcePackages 2>&1 | tail -30
+
       - name: 编译（关闭签名，出未签名包）
         run: |
           set +e
@@ -126,6 +136,7 @@ jobs:
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
+            -clonedSourcePackagesDirPath build/SourcePackages \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
