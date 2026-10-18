@@ -24,6 +24,8 @@ public class ShuyinAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizer
     private var queueIndex = 0
     private var speechVoice: String?
     private var speechRate: Double = 1
+    private var speechVolume: Double = 1
+    private var speechPitch: Double = 1
 
     public override func load() {
         synthesizer.delegate = self
@@ -75,6 +77,8 @@ public class ShuyinAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizer
         if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
         speechVoice = call.getString("voice")
         speechRate = call.getDouble("rate") ?? 1
+        speechVolume = call.getDouble("volume") ?? 1
+        speechPitch = call.getDouble("pitch") ?? 1
         let incoming = call.getArray("queue") ?? []
         speechQueue = incoming.compactMap { $0 as? [String: String] }.filter { !($0["text"] ?? "").isEmpty }
         if speechQueue.isEmpty { speechQueue = [["text": text, "title": call.getString("title") ?? "书隐听书", "artist": call.getString("artist") ?? "书隐"]] }
@@ -88,12 +92,20 @@ public class ShuyinAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizer
         let item = speechQueue[queueIndex]
         let utterance = AVSpeechUtterance(string: item["text"] ?? "")
         utterance.voice = voice(speechVoice)
-        utterance.rate = Float(max(0.45, min(0.62, 0.5 * speechRate)))
+        // 系统语速 0…1，0.5 是默认。旧版死夹在 0.45～0.62，倍速基本无效；
+        // 现在按 0.5×倍速 映射并只保留安全边界（0.28 很慢、0.82 很快）。
+        utterance.rate = Float(max(0.28, min(0.82, 0.5 * speechRate)))
+        utterance.volume = Float(max(0, min(1, speechVolume)))
+        utterance.pitchMultiplier = Float(max(0.5, min(2, speechPitch)))
         utterance.preUtteranceDelay = 0
         utterance.postUtteranceDelay = 0
+        // 锁屏要一条能动的进度条：系统语音不报时长，按约每秒 4.5 字估算。
+        let estimate = max(1.0, Double((item["text"] ?? "").count) / 4.5)
         MPNowPlayingInfoCenter.default().nowPlayingInfo = [
             MPMediaItemPropertyTitle: item["title"] ?? "书隐听书",
             MPMediaItemPropertyArtist: item["artist"] ?? "书隐",
+            MPMediaItemPropertyPlaybackDuration: estimate,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime: Double(Int(item["offset"] ?? "0") ?? 0) / 4.5,
             MPNowPlayingInfoPropertyPlaybackRate: 1.0,
             MPNowPlayingInfoPropertyDefaultPlaybackRate: 1.0
         ]
@@ -138,9 +150,14 @@ public class ShuyinAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizer
         guard synthesizer === self.synthesizer, speechQueue.indices.contains(queueIndex) else { return }
         let item = speechQueue[queueIndex]
         let base = Int(item["offset"] ?? "0") ?? 0
+        let absolute = base + characterRange.location
+        if var info = MPNowPlayingInfoCenter.default().nowPlayingInfo {
+            info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = Double(absolute) / 4.5
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        }
         notifyListeners("speechProgress", data: [
             "index": Int(item["index"] ?? "0") ?? queueIndex,
-            "location": base + characterRange.location,
+            "location": absolute,
             "length": characterRange.length,
             "title": item["title"] ?? ""
         ])
@@ -163,7 +180,9 @@ public class ShuyinAudioPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizer
             call.keepAlive = true
             let utterance = AVSpeechUtterance(string: text)
             utterance.voice = voice(call.getString("voice"))
-            utterance.rate = Float(max(0.45, min(0.62, 0.5 * (call.getDouble("rate") ?? 1))))
+            utterance.rate = Float(max(0.28, min(0.82, 0.5 * (call.getDouble("rate") ?? 1))))
+            utterance.volume = Float(max(0, min(1, call.getDouble("volume") ?? 1)))
+            utterance.pitchMultiplier = Float(max(0.5, min(2, call.getDouble("pitch") ?? 1)))
             speech.write(utterance) { [weak self] buffer in
                 guard let self, let pcm = buffer as? AVAudioPCMBuffer else { return }
                 do {

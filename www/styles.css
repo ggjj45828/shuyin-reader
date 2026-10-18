@@ -332,3 +332,16 @@ button,input,select,textarea{max-width:100%}
 .result-item{grid-template-columns:minmax(0,1fr) minmax(150px,190px);align-items:center;gap:18px;padding:18px 20px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff)}
 .result-copy{min-width:0}.result-summary{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;color:var(--muted);margin:7px 0 9px}.result-kind,.result-source{display:inline-flex;align-items:center;min-height:22px;padding:2px 8px;border-radius:20px;background:var(--surface-soft,#eff1eb);color:var(--muted);font-size:11px;margin:0 6px 0 0}.result-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;white-space:normal}.result-actions button{width:100%;min-height:40px;height:auto;padding:0 12px;border:1px solid var(--line);border-radius:9px;background:transparent;color:var(--ink);font-size:12px;font-weight:600}.result-actions .result-add{grid-column:1/-1;background:#54735d;border-color:#54735d;color:#fff}.result-actions .result-preview{background:var(--surface-soft,#edf0e9);border-color:transparent;color:#405c49}.result-utilities{grid-column:1/-1;display:flex;gap:6px}.result-actions .result-utilities button{min-height:32px;padding:0 7px;border:0;color:var(--muted);font-size:11px;font-weight:500}.result-actions button:disabled{opacity:.55}
 @media(max-width:760px){.result-item{grid-template-columns:minmax(0,1fr);gap:12px;padding:15px}.result-actions{grid-template-columns:1fr 1fr}.result-actions .result-add{grid-column:1/-1}.result-utilities{grid-column:1/-1}.result-actions button{min-height:42px}.result-actions .result-utilities button{min-height:38px}}
+
+/* r70 听书跟随高亮：只给正在朗读的那一句上底色，不改变字号行距，避免正文跳动 */
+mark.shuyin-tts-follow{background:rgba(150,178,128,.42);color:inherit;border-radius:3px;padding:0 1px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+#reader[data-reading-palette=night] mark.shuyin-tts-follow,#reader[data-reading-palette=black] mark.shuyin-tts-follow{background:rgba(126,158,108,.38);color:inherit}
+mark.shuyin-tts-follow.zhijian-highlight{background:rgba(150,178,128,.5)}
+
+/* r70 全库检索 / 笔记汇总 */
+.lib-hit-book{margin:10px 0;padding:10px 12px;border:1px solid var(--line,#dfe3d8);border-radius:10px}
+.lib-hit-title{cursor:pointer;text-decoration:underline dotted}
+.lib-hit{display:flex;gap:8px;align-items:baseline}
+.lib-hit-kind{flex:0 0 auto;padding:1px 6px;border-radius:6px;background:var(--surface-soft,#edf0e9);color:var(--muted);font-size:11px}
+.lib-quote{margin:4px 0;padding-left:8px;border-left:3px solid var(--line,#dfe3d8);color:var(--muted)}
+.tts-plus{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line,#dfe3d8)}
