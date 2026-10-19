@@ -41,7 +41,9 @@ test('iPhone search engine selector defaults to Google-first auto and can be cha
   assert.match(html, /id="searchEngine"/);
   assert.match(html, /value="auto">自动（优先 Google）/);
   assert.match(html, /value="duckduckgo">DuckDuckGo/);
-  assert.match(direct, /\['google','bing','duckduckgo'\]/);
+  assert.match(html, /value="baidu">百度/);
+  assert.match(html, /value="sogou">搜狗/);
+  assert.match(direct, /\['google','bing','duckduckgo','baidu','sogou'\]/);
   assert.match(app, /shuyin\.search-engine\.v1/);
 });
 

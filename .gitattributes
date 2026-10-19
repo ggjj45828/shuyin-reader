@@ -13,3 +13,9 @@
 *.css text eol=lf
 *.plist text eol=lf
 *.png binary
+
+/package.json -text
+/package-lock.json -text
+/www/fonts/LICENSES.md -text
+/www/fonts/fonts.css -text
+/www/fonts/manifest.json -text

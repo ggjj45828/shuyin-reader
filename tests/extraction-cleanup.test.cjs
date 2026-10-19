@@ -26,6 +26,11 @@ test('does not classify short stories with ordinary punctuation as a catalog', (
   assert.equal(cleanExtractedText(prose), prose);
 });
 
+test('preserves paragraph breaks and rejoins hard-wrapped lines inside a paragraph', () => {
+  const text = '这是一段被网站排版硬拆开的正文\n中间没有句号所以需要接回去。\n\n这是下一段，段落边界应该保留。';
+  assert.equal(cleanExtractedText(text), '这是一段被网站排版硬拆开的正文中间没有句号所以需要接回去。\n\n这是下一段，段落边界应该保留。');
+});
+
 
 test('trial filter rejects catalog noise and accepts a sufficiently long matching chapter', () => {
   const rejected = readableCandidate({ content: '少年阿宾\n连载中 · 46章\n·30万字\n6\n斗罗大陆2蚕淫\n小六六\n连载中 · 172章\n·89万字\n7\n催眠眼镜' }, '少年阿宾');

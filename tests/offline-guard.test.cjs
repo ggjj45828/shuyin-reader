@@ -21,8 +21,8 @@ test('离线资源与章节保护脚本已接入页面与离线壳', () => {
 test('章节读取失败不清空正文，并把自动加载开关拨回来', () => {
   const app = read('app.js');
   assert.match(app, /window\.ShuyinChapterGuard\?\.fail\(index,error\)/, '失败路径没有交给保护模块');
-  assert.match(app, /autoLoadReady=true;currentBook\.cacheFailures/, '失败后没有复位 autoLoadReady');
-  assert.match(app, /已保留当前正文/, '提示语没有说明正文已保留');
+  assert.match(app, /autoLoadReady=true;book\.cacheFailures/, '失败后没有复位 autoLoadReady');
+  assert.match(app, /当前正文已保留/, '提示语没有说明正文已保留');
   // 失败分支不得写入 content
   const failBranch = app.slice(app.indexOf('window.ShuyinChapterGuard?.fail(index,error)') - 260);
   assert.doesNotMatch(failBranch.slice(0, 260), /currentBook\.content=/, '失败分支不应修改正文');
@@ -41,7 +41,7 @@ test('重试条提供重试、换源修复与关闭三个动作', () => {
 
 test('没有网络时不再误判为「没有下一章」', () => {
   const app = read('app.js');
-  assert.match(app, /if\(!activeUrl\)\{noMoreChapters=true;return null\}if\(!networkAvailable\(\)\)/,
+  assert.match(app, /if\(!activeUrl\)\{noMoreChapters=true;return null\}[\s\S]*?if\(!networkAvailable\(\)\)/,
     '断网不应把 noMoreChapters 永久置为 true');
 });
 
@@ -72,7 +72,7 @@ test('听书音频可枚举可删除，且拒绝路径穿越', () => {
 test('版本号四处一致', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
-  assert.equal(pkg.version, '0.10.11');
+  assert.equal(pkg.version, '0.10.14');
   assert.equal(lock.version, pkg.version, 'lock 顶层版本不一致');
   assert.equal(lock.packages[''].version, pkg.version, 'lock 根包版本不一致');
 
@@ -82,4 +82,14 @@ test('版本号四处一致', () => {
   assert.ok(html.includes('id="bootDiagVersion"') && html.includes('>' + 'v' + pkg.version + '<'),
     'index.html 启动层没有显示当前版本号');
   assert.ok(html.includes('书隐 iOS v' + pkg.version), '设置页版本号没同步');
+});
+
+test('原生启动探针不能被弄丢', () => {
+  // 这个探针是白屏排查的最后一件工具：它不经过 WebView，直接用 UIKit 画一屏。
+  // 只要还能看到那屏墨绿大字，就说明 App 起来了、问题在网页侧；看不到就是没跑起来。
+  // 以后谁改 ios-setup.cjs 把它删了，这条用例会直接拦下。
+  const script = fs.readFileSync(path.join(root, 'scripts', 'ios-setup.cjs'), 'utf8');
+  assert.match(script, /applicationDidBecomeActive/, '构建脚本里没有注入启动探针');
+  assert.match(script, /918273/, '探针缺少幂等标记（会在每次切回前台重复弹出）');
+  assert.match(script, /UIView\(frame: win\.bounds\)/, '探针没有自己画一屏 UI');
 });

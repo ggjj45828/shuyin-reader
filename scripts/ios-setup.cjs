@@ -93,16 +93,11 @@ try {
   if (fs.existsSync(launch)) {
     const raw = fs.readFileSync(launch, 'utf8');
     const green = 'red="0.1255" green="0.302" blue="0.2235" alpha="1" colorSpace="custom" customColorSpace="sRGB"';
-    let out = raw.replace(
-      /<color key="backgroundColor" systemColor="systemBackgroundColor"\/>/,
-      '<color key="backgroundColor" ' + green + '/>'
-    );
-    if (out === raw) {
-      out = raw.replace(
-        /<color key="backgroundColor" red="1" green="1" blue="1" alpha="1"[^/]*\/>/,
-        '<color key="backgroundColor" ' + green + '/>'
-      );
-    }
+    // Xcode 各版本的写法不一样：有的带 systemColor="systemBackgroundColor"，
+    // 有的还多一个 cocoaTouchSystemColor="whiteColor"，有的干脆写死 red/green/blue。
+    // 一律整段替换第一个 backgroundColor，不猜具体属性。
+    const out = raw.replace(/<color key="backgroundColor"[^>]*\/>/,
+      '<color key="backgroundColor" ' + green + '/>');
     if (out !== raw) {
       fs.writeFileSync(launch, out, 'utf8');
       console.log('启动图底色已改为墨绿 #204d39');
@@ -112,6 +107,64 @@ try {
   }
 } catch (error) {
   console.log('改启动图底色失败（不影响构建）：' + error.message);
+}
+
+// ⑤ 原生启动探针：不经过 WebView，直接用 UIKit 画一屏，停 3.5 秒。
+//
+// 为什么非做不可：白屏查了三轮，全在网页侧打转，可「白屏」这个词本身什么都证明不了。
+// 它可能是 ①App 根本没启动（安装/签名没成，点了图标就退）
+//          ②启动图之后 WebView 没出首帧
+//          ③网页跑起来了但没渲染
+// 这三种的修法完全相反，继续猜就是浪费版本。探针把 ① 和 ②③ 切开：
+// 只要能看到这屏墨绿大字，就证明 App 起来了、原生是活的，问题一定在网页侧；
+// 看不到，就说明根本没跑起来，得去查安装和签名。
+// 用 window.tag 做标记，保证一次进程只弹一次（切后台回来不再弹）。
+try {
+  const appDelegate = path.join(destDir, 'AppDelegate.swift');
+  if (!fs.existsSync(appDelegate)) {
+    console.log('没有 AppDelegate.swift，跳过启动探针');
+  } else {
+    let src = fs.readFileSync(appDelegate, 'utf8');
+    if (src.includes('918273')) {
+      console.log('启动探针已存在，跳过');
+    } else {
+      const version = pkg.version;
+      const probe = [
+        '    func applicationDidBecomeActive(_ application: UIApplication) {',
+        '        // 书隐启动探针 v' + version + '。',
+        '        // 能看到这一屏：App 启动了、原生层正常、问题在网页侧。',
+        '        // 看不到：App 根本没跑起来，去查安装与签名。',
+        '        guard let win = self.window, win.tag != 918273 else { return }',
+        '        win.tag = 918273',
+        '        let panel = UIView(frame: win.bounds)',
+        '        panel.autoresizingMask = [.flexibleWidth, .flexibleHeight]',
+        '        panel.backgroundColor = UIColor(red: 0.1255, green: 0.302, blue: 0.2235, alpha: 1)',
+        '        let label = UILabel(frame: panel.bounds)',
+        '        label.numberOfLines = 0',
+        '        label.textAlignment = .center',
+        '        label.textColor = UIColor.white',
+        '        label.font = UIFont.systemFont(ofSize: 20, weight: .semibold)',
+        '        label.text = "书隐 原生层正常\\n\\nv' + version + '\\n\\n网页正在加载…"',
+        '        label.autoresizingMask = [.flexibleWidth, .flexibleHeight]',
+        '        panel.addSubview(label)',
+        '        win.addSubview(panel)',
+        '        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {',
+        '            UIView.animate(withDuration: 0.3, animations: { panel.alpha = 0 }) { _ in panel.removeFromSuperview() }',
+        '        }',
+        '    }'
+      ].join('\n');
+      const before = src;
+      src = src.replace(/func applicationDidBecomeActive\(_ application: UIApplication\)\s*\{[\s\S]*?\n    \}/, probe);
+      if (src === before) {
+        console.log('启动探针注入失败：AppDelegate 里没匹配到 applicationDidBecomeActive（不影响构建）');
+      } else {
+        fs.writeFileSync(appDelegate, src, 'utf8');
+        console.log('启动探针已注入 AppDelegate（原生诊断层 3.5 秒 · v' + version + '）');
+      }
+    }
+  }
+} catch (error) {
+  console.log('注入启动探针失败（不影响构建）：' + error.message);
 }
 
 console.log('iOS 工程已配置书隐锁屏语音、安全 Keychain、本机 OCR、系统分享面板与后台音频模式。');
