@@ -14,12 +14,16 @@ const path = require('node:path');
 //    直接 `project.writeSync()` 等于把全部改动扔掉，且不报错 —— 表现是 CI 里构建"成功"，
 //    但 App target 只编译了 AppDelegate.swift，四个插件静默缺失，运行期 NSClassFromString 拿到 nil。
 
+// v0.10.11 起 ShuyinNeuralTtsPlugin.swift 暂不参与编译。
+// 它是 v0.10.9 白屏的唯一嫌疑：这版开始引入 sherpa-onnx，App 包里多出
+// SherpaOnnxC.framework / onnxruntime.framework 两个第三方动态库，
+// 未签名 IPA 经重签工具处理后极易在 dyld 阶段加载失败（表现就是打开只有白屏）。
+// 源码保留在 native/ios/ 下，等确认白屏与它无关、并换用更稳的接入方式后再打开。
 const PLUGINS = [
   'ShuyinAudioPlugin.swift',
   'ShuyinSecureStorePlugin.swift',
   'ShuyinOCRPlugin.swift',
   'ShuyinSharePlugin.swift',
-  'ShuyinNeuralTtsPlugin.swift',
 ];
 
 function groupKeyByName(project, name) {

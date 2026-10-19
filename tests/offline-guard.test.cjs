@@ -69,10 +69,17 @@ test('听书音频可枚举可删除，且拒绝路径穿越', () => {
   assert.match(tts, /shuyin\.audio\.index\.v1/, '保存音频后没有登记归属索引');
 });
 
-test('版本号三处一致', () => {
+test('版本号四处一致', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
-  assert.equal(pkg.version, '0.10.10');
+  assert.equal(pkg.version, '0.10.11');
   assert.equal(lock.version, pkg.version, 'lock 顶层版本不一致');
   assert.equal(lock.packages[''].version, pkg.version, 'lock 根包版本不一致');
+
+  // 启动自检层和设置页都把版本号写在屏幕上：装的是哪一版，用户一眼能看到，
+  // 不用再靠猜。两处必须跟着 package.json 一起升，否则测试直接拦下。
+  const html = fs.readFileSync(path.join(root, 'www', 'index.html'), 'utf8');
+  assert.ok(html.includes('id="bootDiagVersion"') && html.includes('>' + 'v' + pkg.version + '<'),
+    'index.html 启动层没有显示当前版本号');
+  assert.ok(html.includes('书隐 iOS v' + pkg.version), '设置页版本号没同步');
 });

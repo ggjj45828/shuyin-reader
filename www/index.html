@@ -10,55 +10,100 @@
   <link rel="stylesheet" href="./fonts/fonts.css" />
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head>
 <body>
-  <!-- v0.10.10 启动自检：任何情况下都不再出现「全白什么都看不到」。
-       页面能渲染 → 先看到「书隐 正在启动…」，界面就绪后自动消失；
-       脚本报错 → 直接把错误原文停在屏幕上，方便截图定位。 -->
-  <div id="bootDiag" style="position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#f4f0e7;color:#204d39;font:15px/1.7 -apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue',sans-serif;padding:28px;text-align:center">
-    <div style="font-size:24px;letter-spacing:.22em;font-weight:600">书隐</div>
-    <div id="bootDiagText" style="font-size:13px;color:#6b7b70">正在启动…</div>
+  <!-- v0.10.11 启动自检（第二版）。
+       v0.10.10 的自检层有个致命误判：它用「.app-shell 高度 > 10」判断界面是否就绪，
+       可 styles.css 里写的是 .app-shell{min-height:100vh}，这个盒子**永远**有整屏高度，
+       于是 200 毫秒后自检层就把自己删掉了 —— 页面一旦没渲染出来，屏幕上依然是一片白。
+       这一版改用三条硬判据：
+         ① 主界面里真的看得见文字（innerText 长度 ≥ 20，display:none 的不算）
+         ② app.js 初始化完成后主动报到 window.__shuyinBoot.done()
+         ③ 兜底：界面有字但迟迟没报到时，最晚 3.5 秒也交还屏幕，不会把 App 永久挡住
+       任何一条都不成立，屏幕上就一直有字；脚本报错则红屏显示错误原文和现场信息。 -->
+  <div id="bootDiag" style="position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#f4f0e7;color:#204d39;font:15px/1.7 -apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue',sans-serif;padding:26px;text-align:center">
+    <div style="font-size:25px;letter-spacing:.22em;font-weight:600">书隐</div>
+    <div id="bootDiagText" style="font-size:13px;color:#5d7266">正在启动…</div>
+    <div id="bootDiagDetail" style="font-size:10px;line-height:1.65;color:#93a196;white-space:pre-wrap;max-width:100%;word-break:break-all"></div>
+    <div id="bootDiagVersion" style="font-size:10px;color:#a8b3aa;letter-spacing:.08em">v0.10.11</div>
   </div>
   <script>
   (function(){
-    var gone=false,failed=false;
-    function host(){return document.getElementById('bootDiag');}
-    function paint(){
-      if(gone||failed)return;
-      var box=host();if(!box)return;
+    var boot=window.__shuyinBoot={stage:'页面骨架已解析',ready:false};
+    boot.done=function(){boot.ready=true;boot.stage='界面就绪';settle();};
+    boot.note=function(text){boot.stage=String(text||'');};
+    var gone=false,failed=false,failures=[],start=Date.now();
+    function el(id){return document.getElementById(id)}
+    function visibleText(){
       var shell=document.querySelector('.app-shell');
-      // 主界面真的撑起来了才撤掉这层；否则保持可见，绝不把屏幕交还给「纯白」。
-      if(shell&&shell.getBoundingClientRect().height>10){gone=true;if(box.parentNode)box.parentNode.removeChild(box);}
+      if(!shell)return '';
+      var text='';
+      try{text=shell.innerText||''}catch(e){}
+      if(!text)text=shell.textContent||'';
+      return String(text).replace(/\s+/g,'');
+    }
+    function drop(){
+      if(gone||failed)return;gone=true;
+      var box=el('bootDiag');if(box&&box.parentNode)box.parentNode.removeChild(box);
+    }
+    function scene(){
+      var lines=[];
+      lines.push('阶段：'+boot.stage+' · 已等 '+(Math.round((Date.now()-start)/100)/10)+' 秒');
+      lines.push('页面：'+String(location.href).slice(0,80));
+      var cap=window.Capacitor;
+      lines.push('宿主：'+(cap?('Capacitor/'+(cap.getPlatform?cap.getPlatform():'?')+(cap.isNativePlatform&&cap.isNativePlatform()?'（原生壳）':'（浏览器）')):'非 Capacitor（纯浏览器）'));
+      lines.push('屏幕：'+window.innerWidth+'×'+window.innerHeight+' · 像素比 '+(window.devicePixelRatio||1));
+      lines.push('脚本：'+document.scripts.length+' 个 · 可见字数：'+visibleText().length);
+      if(failures.length)lines.push('加载失败的资源（'+failures.length+'）：\n'+failures.slice(0,6).join('\n'));
+      return lines.join('\n');
+    }
+    function settle(){
+      if(gone||failed)return;
+      var text=el('bootDiagText'),detail=el('bootDiagDetail');
+      if(boot.ready||(visibleText().length>=20&&Date.now()-start>3500)){drop();return;}
+      if(text)text.textContent=boot.ready?'界面就绪':'正在启动…';
+      if(detail)detail.textContent=scene();
     }
     function fail(title,detail){
+      // 启动 20 秒之后就不再糊屏了：那时候 App 已经在正常使用，
+      // 偶发的一两个异步错误不该把整屏盖成红色，留在控制台就行。
+      if(Date.now()-start>20000&&boot.ready){try{console.error(title,detail)}catch(e){}return;}
       failed=true;
-      var box=host();
+      var box=el('bootDiag');
       if(!box){
-        box=document.createElement('div');box.id='bootDiag';box.setAttribute('style','position:fixed;inset:0;z-index:2147483000;background:#7f1d1d;color:#fff;font:13px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;padding:22px;padding-top:60px;overflow:auto;white-space:pre-wrap;text-align:left;-webkit-user-select:text;user-select:text');
+        box=document.createElement('div');box.id='bootDiag';
+        box.setAttribute('style','position:fixed;inset:0;z-index:2147483000;background:#7f1d1d;color:#fff;font:13px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;padding:22px;padding-top:60px;overflow:auto;white-space:pre-wrap;text-align:left;-webkit-user-select:text;user-select:text');
         (document.body||document.documentElement).appendChild(box);
       }
-      box.style.display='block';
-      box.style.background='#7f1d1d';box.style.color='#ffffff';
-      var text=document.getElementById('bootDiagText');
+      box.style.display='block';box.style.background='#7f1d1d';box.style.color='#ffffff';
+      var text=el('bootDiagText');
       if(!text){box.innerHTML='';text=document.createElement('div');text.id='bootDiagText';box.appendChild(text);}
       text.style.color='#ffe4e4';text.style.fontSize='13px';text.style.letterSpacing='0';text.style.fontWeight='400';
-      text.textContent=title+'\n\n'+detail;
+      var extra=el('bootDiagDetail');
+      if(extra)extra.style.color='#ffd7d7';
+      text.textContent=title+'\n\n'+detail+'\n\n'+scene();
     }
     window.addEventListener('error',function(e){
       var t=e.target;
-      if(t&&t!==window&&(t.src||t.href)){fail('资源加载失败',String(t.src||t.href));return;}
+      if(t&&t!==window&&(t.src||t.href)){
+        var url=String(t.src||t.href);
+        failures.push(url.split('/').slice(-1)[0]);
+        // 单个图片/字体失败不影响使用，只记录；主样式和主脚本挂了才算致命
+        if(/app\.js|styles\.css/.test(url))fail('关键资源加载失败',url);
+        return;
+      }
       fail('启动出错：'+(e.message||'未知错误'),
-        String(e.filename||'').split('/').pop()+':'+(e.lineno||0)+':'+(e.colno||0)+'\n'+(e.error&&e.error.stack?String(e.error.stack).slice(0,900):''));
+        String(e.filename||'').split('/').slice(-1)[0]+':'+(e.lineno||0)+':'+(e.colno||0)+'\n'+(e.error&&e.error.stack?String(e.error.stack).slice(0,800):''));
     },true);
     window.addEventListener('unhandledrejection',function(e){
       var r=e.reason||{};
-      fail('启动异常：'+(r.message||r),String(r.stack||'').slice(0,900));
+      fail('启动异常：'+(r.message||r),String(r.stack||'').slice(0,800));
     });
-    var timer=setInterval(paint,200);
-    setTimeout(function(){clearInterval(timer);paint();},15000);
+    var timer=setInterval(settle,250);
+    setTimeout(function(){clearInterval(timer)},120000);
     setTimeout(function(){
       if(gone||failed)return;
-      var text=document.getElementById('bootDiagText');
-      if(text)text.textContent='仍在启动…（若长时间停在这里，请截图反馈）';
-    },8000);
+      var text=el('bootDiagText');
+      if(text&&!boot.ready)text.textContent='还在启动…（一直停在这里的话，请把下面这段一起截图）';
+    },9000);
   })();
   </script>
   <div class="app-shell">
@@ -117,7 +162,7 @@
         <div class="page-intro"><p class="eyebrow">PREFERENCES</p><h1>设置与同步</h1><p>管理阅读习惯、备份和 NAS 连接。</p></div>
         <div class="settings-layout"><div class="settings-nav"><button class="settings-tab selected">阅读偏好</button><button class="settings-tab">数据与备份</button><button class="settings-tab">NAS 同步</button></div>
           <div class="settings-content"><div class="setting-card" id="settings-reading"><h2>阅读偏好</h2><p>调整书页的文字显示。</p><div class="setting-row"><div><strong>字体大小</strong><span>正文显示大小</span></div><div class="font-control"><button id="fontDown">A−</button><span id="fontSizeLabel">18px</span><button id="fontUp">A＋</button></div></div><div class="setting-row"><div><strong>阅读背景</strong><span>选择更舒适的纸张色</span></div><div class="theme-options"><button class="theme-chip selected" data-theme="paper">暖纸</button><button class="theme-chip" data-theme="white">白昼</button><button class="theme-chip" data-theme="green">松绿</button><button class="theme-chip" data-theme="night">夜读</button></div></div></div>
-          <div class="setting-card" id="settings-nas"><h2>NAS 书库</h2><p>部署在极空间后，书籍、阅读进度和书架都会保存在 NAS；iPhone 与其他设备访问同一地址即可共用。</p><div class="nas-deploy-note"><span class="status-dot" id="nasStatusDot"></span><span id="nasStatusText">当前使用本机浏览器书库</span></div><p class="version-note">书隐 iOS · 本机阅读与 NAS 可选双向同步</p><p class="form-hint">使用极空间远程访问或你自己的 HTTPS 隧道打开阅读器地址。阅读器不需要登录密码，请勿将服务直接暴露到公网。</p></div>
+          <div class="setting-card" id="settings-nas"><h2>NAS 书库</h2><p>部署在极空间后，书籍、阅读进度和书架都会保存在 NAS；iPhone 与其他设备访问同一地址即可共用。</p><div class="nas-deploy-note"><span class="status-dot" id="nasStatusDot"></span><span id="nasStatusText">当前使用本机浏览器书库</span></div><p class="version-note">书隐 iOS v0.10.11 · 本机阅读与 NAS 可选双向同步</p><p class="form-hint">使用极空间远程访问或你自己的 HTTPS 隧道打开阅读器地址。阅读器不需要登录密码，请勿将服务直接暴露到公网。</p></div>
           <div class="setting-card" id="settings-backup"><h2>书库备份</h2><p>导出书目与阅读进度，便于迁移或备份。</p><div class="backup-actions"><button id="exportLibrary" class="secondary-button">导出书库备份</button><label class="secondary-button import-backup">导入备份<input id="backupInput" type="file" accept="application/json" /></label></div></div></div></div>
       </section>
 

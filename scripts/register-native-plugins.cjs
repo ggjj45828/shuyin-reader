@@ -26,7 +26,8 @@ const PLUGINS = [
   'ShuyinSecureStorePlugin',  // DeepSeek Key 存 Keychain
   'ShuyinOCRPlugin',          // 扫描版 PDF 走 Vision
   'ShuyinSharePlugin',        // 系统分享面板导出 EPUB
-  'ShuyinNeuralTtsPlugin',    // 离线神经语音（sherpa-onnx）
+  // v0.10.11：ShuyinNeuralTtsPlugin 暂不注册（会连带引入 sherpa-onnx 的两个第三方
+  // 动态库，是 v0.10.9 起白屏的头号嫌疑）。JS 侧探测不到它会自动回落到 iOS 系统语音。
 ];
 
 const json = JSON.parse(fs.readFileSync(configFile, 'utf8'));

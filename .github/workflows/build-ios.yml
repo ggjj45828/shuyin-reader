@@ -61,7 +61,7 @@ jobs:
           SZ=$(wc -c < "$PBX")
           echo "pbxproj = $SZ 字节"
           [ "$SZ" -gt 1000 ] || { echo "::error::pbxproj 只有 $SZ 字节"; exit 1; }
-          for f in ShuyinAudioPlugin ShuyinSecureStorePlugin ShuyinOCRPlugin ShuyinSharePlugin ShuyinNeuralTtsPlugin; do
+          for f in ShuyinAudioPlugin ShuyinSecureStorePlugin ShuyinOCRPlugin ShuyinSharePlugin; do
             n=$(grep -c "$f.swift in Sources" "$PBX" || true)
             echo "  $f -> $n 处"
             [ "$n" -ge 2 ] || { echo "::error::$f 没进 Sources 构建阶段（$n 处，应为 2）"; exit 1; }
@@ -69,6 +69,9 @@ jobs:
           echo "四个插件都在 Sources 构建阶段"
 
       - name: 下载离线语音模型（sherpa-onnx VITS 中文）
+        # v0.10.11：神经语音暂停接入，模型也不再打进包里（省 20MB、少一层出错面）。
+        # 恢复离线语音时，把这里的 false 改回 true 即可。
+        if: ${{ false }}
         # 模型不进源码仓库，打包时现拉。放在 www/tts/ 下，cap sync 会拷进 public/，
         # Swift 侧从 Bundle.main/public/tts/<目录>/ 读 onnx + tokens.txt
         run: |

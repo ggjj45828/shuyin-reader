@@ -22,13 +22,20 @@ const { added, skipped } = addPlugins({
 if (added.length) console.log('已接入 App target：' + added.join(', '));
 if (skipped.length) console.log('已存在，跳过：' + skipped.join(', '));
 
-// ①b 离线语音需要 sherpa-onnx，走 Swift Package（binaryTarget 是官方 iOS 静态 xcframework）
-try {
-  const spm = addSwiftPackage({ projectPath: path.join(root, 'ios/App/App.xcodeproj/project.pbxproj') });
-  console.log(spm.added ? '已接入 Swift Package：sherpa-onnx' : 'Swift Package 已存在，跳过');
-} catch (error) {
-  console.log('接入 sherpa-onnx 失败（离线语音将不可用）：' + error.message);
-}
+// ①b 离线神经语音（sherpa-onnx）在 v0.10.11 暂停接入。
+// 它是 v0.10.9 起「打开就是白屏」的头号嫌疑：接了 SPM 之后 App 包里会多出
+// SherpaOnnxC.framework 与 onnxruntime.framework 两个第三方动态库，未签名 IPA
+// 经重签工具处理后很容易在 dyld 加载阶段失败 —— 表现正是点开图标只有一片白。
+// 先把它摘掉，用「App 能不能正常打开」来做一次干净的对照实验；
+// 确认与它无关、并改用更稳的方式（例如按需下载的 xcframework）后再恢复。
+//
+// try {
+//   const spm = addSwiftPackage({ projectPath: path.join(root, 'ios/App/App.xcodeproj/project.pbxproj') });
+//   console.log(spm.added ? '已接入 Swift Package：sherpa-onnx' : 'Swift Package 已存在，跳过');
+// } catch (error) {
+//   console.log('接入 sherpa-onnx 失败（离线语音将不可用）：' + error.message);
+// }
+console.log('v0.10.11：离线神经语音（sherpa-onnx）暂停接入，本次不引入第三方动态库');
 
 // 插件**注册**不在这里：Capacitor 7 的 iOS 模板只有 AppDelegate.swift + Info.plist，
 // 没有 MainViewController / capacitorDidLoad 可覆写。注册改由
@@ -75,6 +82,36 @@ if (updated !== data) {
   execFileSync('/usr/bin/plutil', ['-lint', temp], { stdio: 'inherit' });
   fs.renameSync(temp, plist);
   console.log('已补 Info.plist：后台音频 / 文件共享 / 本地网络 HTTP');
+}
+
+// ④ 启动图（LaunchScreen）改成墨绿底
+// 作用有两个：一是白底启动图挂了看不出来，换成深色一眼就知道「卡在启动图」还是「页面白屏」；
+// 二是万一 WebView 迟迟不出首帧，屏幕上至少是品牌色，不是让人以为 App 坏了的纯白。
+// 只动 backgroundColor 一个字面量，不碰 storyboard 结构，编译风险最低。
+try {
+  const launch = path.join(destDir, 'Base.lproj', 'LaunchScreen.storyboard');
+  if (fs.existsSync(launch)) {
+    const raw = fs.readFileSync(launch, 'utf8');
+    const green = 'red="0.1255" green="0.302" blue="0.2235" alpha="1" colorSpace="custom" customColorSpace="sRGB"';
+    let out = raw.replace(
+      /<color key="backgroundColor" systemColor="systemBackgroundColor"\/>/,
+      '<color key="backgroundColor" ' + green + '/>'
+    );
+    if (out === raw) {
+      out = raw.replace(
+        /<color key="backgroundColor" red="1" green="1" blue="1" alpha="1"[^/]*\/>/,
+        '<color key="backgroundColor" ' + green + '/>'
+      );
+    }
+    if (out !== raw) {
+      fs.writeFileSync(launch, out, 'utf8');
+      console.log('启动图底色已改为墨绿 #204d39');
+    } else {
+      console.log('启动图底色未改动（未识别的 storyboard 写法，不影响构建）');
+    }
+  }
+} catch (error) {
+  console.log('改启动图底色失败（不影响构建）：' + error.message);
 }
 
 console.log('iOS 工程已配置书隐锁屏语音、安全 Keychain、本机 OCR、系统分享面板与后台音频模式。');

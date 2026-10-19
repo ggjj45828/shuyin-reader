@@ -1,4 +1,4 @@
-const CACHE = 'shuyin-reading-shell-v010n';
+const CACHE = 'shuyin-reading-shell-v010o';
 const BASE = new URL('./', self.registration.scope);
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './shuyin-icon.svg',

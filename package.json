@@ -1,6 +1,6 @@
 {
   "name": "shuyin-ios",
-  "version": "0.10.10",
+  "version": "0.10.11",
   "private": true,
   "description": "书隐 iOS 本地优先阅读 App 迁移工程",
   "scripts": {
