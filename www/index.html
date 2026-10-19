@@ -10,6 +10,57 @@
   <link rel="stylesheet" href="./fonts/fonts.css" />
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head>
 <body>
+  <!-- v0.10.10 启动自检：任何情况下都不再出现「全白什么都看不到」。
+       页面能渲染 → 先看到「书隐 正在启动…」，界面就绪后自动消失；
+       脚本报错 → 直接把错误原文停在屏幕上，方便截图定位。 -->
+  <div id="bootDiag" style="position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#f4f0e7;color:#204d39;font:15px/1.7 -apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue',sans-serif;padding:28px;text-align:center">
+    <div style="font-size:24px;letter-spacing:.22em;font-weight:600">书隐</div>
+    <div id="bootDiagText" style="font-size:13px;color:#6b7b70">正在启动…</div>
+  </div>
+  <script>
+  (function(){
+    var gone=false,failed=false;
+    function host(){return document.getElementById('bootDiag');}
+    function paint(){
+      if(gone||failed)return;
+      var box=host();if(!box)return;
+      var shell=document.querySelector('.app-shell');
+      // 主界面真的撑起来了才撤掉这层；否则保持可见，绝不把屏幕交还给「纯白」。
+      if(shell&&shell.getBoundingClientRect().height>10){gone=true;if(box.parentNode)box.parentNode.removeChild(box);}
+    }
+    function fail(title,detail){
+      failed=true;
+      var box=host();
+      if(!box){
+        box=document.createElement('div');box.id='bootDiag';box.setAttribute('style','position:fixed;inset:0;z-index:2147483000;background:#7f1d1d;color:#fff;font:13px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;padding:22px;padding-top:60px;overflow:auto;white-space:pre-wrap;text-align:left;-webkit-user-select:text;user-select:text');
+        (document.body||document.documentElement).appendChild(box);
+      }
+      box.style.display='block';
+      box.style.background='#7f1d1d';box.style.color='#ffffff';
+      var text=document.getElementById('bootDiagText');
+      if(!text){box.innerHTML='';text=document.createElement('div');text.id='bootDiagText';box.appendChild(text);}
+      text.style.color='#ffe4e4';text.style.fontSize='13px';text.style.letterSpacing='0';text.style.fontWeight='400';
+      text.textContent=title+'\n\n'+detail;
+    }
+    window.addEventListener('error',function(e){
+      var t=e.target;
+      if(t&&t!==window&&(t.src||t.href)){fail('资源加载失败',String(t.src||t.href));return;}
+      fail('启动出错：'+(e.message||'未知错误'),
+        String(e.filename||'').split('/').pop()+':'+(e.lineno||0)+':'+(e.colno||0)+'\n'+(e.error&&e.error.stack?String(e.error.stack).slice(0,900):''));
+    },true);
+    window.addEventListener('unhandledrejection',function(e){
+      var r=e.reason||{};
+      fail('启动异常：'+(r.message||r),String(r.stack||'').slice(0,900));
+    });
+    var timer=setInterval(paint,200);
+    setTimeout(function(){clearInterval(timer);paint();},15000);
+    setTimeout(function(){
+      if(gone||failed)return;
+      var text=document.getElementById('bootDiagText');
+      if(text)text.textContent='仍在启动…（若长时间停在这里，请截图反馈）';
+    },8000);
+  })();
+  </script>
   <div class="app-shell">
     <aside class="sidebar">
       <a class="brand" href="#home" aria-label="书隐首页"><span class="brand-mark">隐</span><span>书隐</span></a>
@@ -76,5 +127,5 @@
   <div id="toast" class="toast" role="status"></div>
   <script src="./direct-web.js?v=20261018-r86"></script><script src="./app.js?v=20261018-r88"></script>
   
-<script src="./reader-chapter-guard.js?v=20261018-r85" defer></script><script src="./reader-extras.js?v=20261017-r53" defer></script><script src="./reader-mobile-fix.js?v=20261017-r53" defer></script><script src="./reader-nas-tts.js?v=20261018-r62" defer></script><script src="./reader-tts-plus.js?v=20261018-r70" defer></script><script src="./reader-library-tools.js?v=20261018-r70" defer></script><script src="./reader-offline-manager.js?v=20261018-r85" defer></script><script src="./reader-source-guard.js?v=20261018-r86" defer></script><script src="./reader-reading-polish.js?v=20261018-r86" defer></script><script src="./reader-font-choice.js?v=20261018-r88" defer></script><script src="./reader-position.js?v=20261018-r88" defer></script><script src="./reader-floating.js?v=20261017-r69" defer></script><script src="./vendor/jszip.min.js"></script><script src="./vendor/mammoth.browser.min.js"></script><script type="module">import * as pdfjsLib from './vendor/pdf.mjs';pdfjsLib.GlobalWorkerOptions.workerSrc=new URL('./vendor/pdf.worker.mjs',import.meta.url).toString();window.pdfjsLib=pdfjsLib;</script><script src="./offline-formats.js"></script><script src="./local-backup.js" defer></script><script src="./reading-tools.js" defer></script><script src="./vendor/shuyin-browser.js"></script><script src="./vendor/shuyin-audio.js"></script><script src="./vendor/shuyin-secure-store.js"></script><script src="./vendor/shuyin-share.js"></script><script src="./vendor/shuyin-ocr.js"></script><script src="./nas-sync.js" defer></script><script src="./ebook-export.js" defer></script><script src="./reader-offline-download.js" defer></script><script src="./reader-native-audio.js" defer></script><script src="./shuyin-native.js" defer></script><script src="./mobile-local-services.js?v=20261018-r68" defer></script><script src="./mobile-enhancements.js?v=20261017-r69" defer></script><script>if('serviceWorker'in navigator&&!window.Capacitor?.isNativePlatform?.()&&location.protocol==='https:')navigator.serviceWorker.register(new URL('./sw.js',location.href),{scope:new URL('./',location.href).pathname}).catch(error=>console.warn('书隐离线壳注册失败',error));</script></body>
+<script src="./reader-chapter-guard.js?v=20261018-r85" defer></script><script src="./reader-extras.js?v=20261019-r54" defer></script><script src="./reader-mobile-fix.js?v=20261017-r53" defer></script><script src="./reader-nas-tts.js?v=20261019-r63" defer></script><script src="./reader-tts-plus.js?v=20261018-r70" defer></script><script src="./reader-library-tools.js?v=20261018-r70" defer></script><script src="./reader-offline-manager.js?v=20261018-r85" defer></script><script src="./reader-source-guard.js?v=20261018-r86" defer></script><script src="./reader-reading-polish.js?v=20261018-r86" defer></script><script src="./reader-font-choice.js?v=20261018-r88" defer></script><script src="./reader-position.js?v=20261018-r88" defer></script><script src="./reader-floating.js?v=20261017-r69" defer></script><script src="./vendor/jszip.min.js"></script><script src="./vendor/mammoth.browser.min.js"></script><script type="module">import * as pdfjsLib from './vendor/pdf.mjs';pdfjsLib.GlobalWorkerOptions.workerSrc=new URL('./vendor/pdf.worker.mjs',import.meta.url).toString();window.pdfjsLib=pdfjsLib;</script><script src="./offline-formats.js"></script><script src="./local-backup.js" defer></script><script src="./reading-tools.js" defer></script><script src="./vendor/shuyin-browser.js"></script><script src="./vendor/shuyin-audio.js"></script><script src="./vendor/shuyin-secure-store.js"></script><script src="./vendor/shuyin-share.js"></script><script src="./vendor/shuyin-ocr.js"></script><script src="./nas-sync.js" defer></script><script src="./ebook-export.js" defer></script><script src="./reader-offline-download.js" defer></script><script src="./reader-native-audio.js" defer></script><script src="./shuyin-native.js" defer></script><script src="./mobile-local-services.js?v=20261018-r68" defer></script><script src="./mobile-enhancements.js?v=20261017-r69" defer></script><script>if('serviceWorker'in navigator&&!window.Capacitor?.isNativePlatform?.()&&location.protocol==='https:')navigator.serviceWorker.register(new URL('./sw.js',location.href),{scope:new URL('./',location.href).pathname}).catch(error=>console.warn('书隐离线壳注册失败',error));</script></body>
 </html>

@@ -6,6 +6,12 @@ import SherpaOnnxC
 /// 离线神经语音（sherpa-onnx VITS）。
 /// 模型放在 `public/tts/<模型目录>/`，由 CI 在打包时下载，不进源码仓库。
 /// 没有模型时 status() 返回 installed=false，JS 侧自动回落到系统语音，不会崩。
+///
+/// 重要（v0.10.10 修白屏）：Capacitor 的插件方法默认在**主线程**执行。
+/// 页面一初始化就会调 status()，如果它顺手把 18MB 的 onnx 模型加载了，
+/// 主线程会被卡住好几秒——iOS 迟迟拿不到首帧，就一直停在白色启动图上，
+/// 表现就是「打开 App 全白、什么都没有」。
+/// 所以：status() 只查文件在不在（毫秒级）；任何模型加载/推理都放到 work 队列。
 @objc(ShuyinNeuralTtsPlugin)
 public class ShuyinNeuralTtsPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDelegate {
     public let identifier = "ShuyinNeuralTtsPlugin"
@@ -16,6 +22,10 @@ public class ShuyinNeuralTtsPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDe
         CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise)
     ]
 
+    /// 串行队列：模型初始化与合成都在这里跑，永远不占主线程。
+    private let work = DispatchQueue(label: "com.shuyin.neural-tts", qos: .userInitiated)
+    /// 只保护几个短字段的读写；模型加载期间**不持锁**，避免主线程排队等它。
+    private let state = NSLock()
     private var tts: SherpaOnnxOfflineTtsWrapper?
     private var loadedDir: String?
     private var player: AVAudioPlayer?
@@ -53,8 +63,14 @@ public class ShuyinNeuralTtsPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDe
         return UnsafePointer(strdup(value))
     }
 
+    /// 只允许在 work 队列上调用。
     private func ensure(_ dir: String) -> SherpaOnnxOfflineTtsWrapper? {
-        if let tts, loadedDir == dir { return tts }
+        state.lock()
+        let cached = tts
+        let cachedDir = loadedDir
+        state.unlock()
+        if let cached, cachedDir == dir { return cached }
+
         guard let model = first(dir, suffix: ".onnx"), !model.hasSuffix(".json") else { return nil }
         let tokens = first(dir, suffix: "tokens.txt")
         let lexicon = first(dir, suffix: "lexicon.txt")
@@ -77,23 +93,35 @@ public class ShuyinNeuralTtsPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDe
 
         let wrapper = SherpaOnnxOfflineTtsWrapper(config: &config)
         guard wrapper.tts != nil else { return nil }
+        state.lock()
         tts = wrapper
         loadedDir = dir
+        state.unlock()
         return wrapper
     }
 
     // MARK: - 对外方法
 
     @objc func status(_ call: CAPPluginCall) {
-        var info: [String: Any] = ["installed": false, "ready": false]
-        if let dir = locateModel() {
-            info["installed"] = true
-            info["dir"] = (dir as NSString).lastPathComponent
-            if let engine = ensure(dir) {
-                info["ready"] = true
-                info["speakers"] = Int(engine.numSpeakers)
-                info["sampleRate"] = Int(engine.sampleRate)
-            }
+        // 绝不在这个方法里加载模型：它会在页面初始化时被调用，一旦变慢就是白屏。
+        guard let dir = locateModel() else {
+            call.resolve(["installed": false, "ready": false])
+            return
+        }
+        state.lock()
+        let ready = tts != nil
+        let speakers = tts.map { Int($0.numSpeakers) } ?? 0
+        let sampleRate = tts.map { Int($0.sampleRate) } ?? 0
+        state.unlock()
+
+        var info: [String: Any] = [
+            "installed": true,
+            "ready": ready,
+            "dir": (dir as NSString).lastPathComponent
+        ]
+        if ready {
+            info["speakers"] = speakers
+            info["sampleRate"] = sampleRate
         }
         call.resolve(info)
     }
@@ -103,16 +131,18 @@ public class ShuyinNeuralTtsPlugin: CAPPlugin, CAPBridgedPlugin, AVAudioPlayerDe
             call.reject("朗读内容为空")
             return
         }
-        guard let dir = locateModel(), let engine = ensure(dir) else {
-            call.reject("离线语音模型未安装")
-            return
-        }
+        let speed = Float(max(0.5, min(2.0, call.getDouble("speed") ?? 1.0)))
+        let sid = max(0, Int(call.getInt("sid") ?? 0))
         stopPlayback()
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+
+        // 定位目录、加载模型、合成，全部在后台队列；主线程只负责最后播放。
+        work.async { [weak self] in
             guard let self else { return }
+            guard let dir = self.locateModel(), let engine = self.ensure(dir) else {
+                DispatchQueue.main.async { call.reject("离线语音模型未安装") }
+                return
+            }
             let started = Date()
-            let speed = Float(max(0.5, min(2.0, call.getDouble("speed") ?? 1.0)))
-            let sid = max(0, Int(call.getInt("sid") ?? 0))
             let audio = engine.generate(text: text, sid: sid, speed: speed)
             let seconds = audio.sampleRate > 0 ? Double(audio.n) / Double(audio.sampleRate) : 0
             guard audio.n > 0 else {

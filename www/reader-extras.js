@@ -167,7 +167,7 @@ notesClick?.addEventListener('click',()=>{
  saveBtn.before(wrap);
  saveBtn.addEventListener('click',()=>{
   const b=current();if(!b)return;
-  const last=(b.notes||[]).at(-1);
+  const last=(b.notes||[]).slice(-1)[0];
   if(last&&Date.now()-last.at<2000)last.highlight=!!$('#r49Highlight')?.checked;
   persist();highlightSavedQuotes();
  });

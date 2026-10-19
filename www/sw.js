@@ -1,11 +1,11 @@
-const CACHE = 'shuyin-reading-shell-v010m';
+const CACHE = 'shuyin-reading-shell-v010n';
 const BASE = new URL('./', self.registration.scope);
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './shuyin-icon.svg',
   './icons/shuyin-192.png', './icons/shuyin-512.png', './icons/apple-touch-icon.png',
   './styles.css?v=20261018-r88', './direct-web.js?v=20261018-r86', './app.js?v=20261018-r88',
-  './reader-extras.js?v=20261017-r53', './reader-mobile-fix.js?v=20261017-r53',
-  './reader-nas-tts.js?v=20261018-r62', './reader-floating.js?v=20261017-r69',
+  './reader-extras.js?v=20261019-r54', './reader-mobile-fix.js?v=20261017-r53',
+  './reader-nas-tts.js?v=20261019-r63', './reader-floating.js?v=20261017-r69',
   './reader-tts-plus.js?v=20261018-r70', './reader-library-tools.js?v=20261018-r70',
   './reader-chapter-guard.js?v=20261018-r85', './reader-offline-manager.js?v=20261018-r85',
   './reader-source-guard.js?v=20261018-r86',
