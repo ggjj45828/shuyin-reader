@@ -129,32 +129,58 @@ try {
       console.log('启动探针已存在，跳过');
     } else {
       const version = pkg.version;
+      // 需要 WKWebView 类型才能读网页地址和标题；模板里默认只有 UIKit/Capacitor。
+      if (!src.includes('import WebKit')) {
+        src = src.replace('import UIKit', 'import UIKit\nimport WebKit');
+      }
       const probe = [
         '    func applicationDidBecomeActive(_ application: UIApplication) {',
-        '        // 书隐启动探针 v' + version + '。',
-        '        // 能看到这一屏：App 启动了、原生层正常、问题在网页侧。',
-        '        // 看不到：App 根本没跑起来，去查安装与签名。',
+        '        // 书隐诊断探针 v' + version + '：不再只证明「原生活着」，',
+        '        // 而是把 WebView 的真实地址与标题读出来，直接判断网页到底加载了没有。',
+        '        // 网页自检脚本会持续把状态写进 document.title（DIAG|阶段|shell|字数|ready|错误），',
+        '        // 所以这一屏就是一份现成的现场报告。',
         '        guard let win = self.window, win.tag != 918273 else { return }',
         '        win.tag = 918273',
         '        let panel = UIView(frame: win.bounds)',
         '        panel.autoresizingMask = [.flexibleWidth, .flexibleHeight]',
-        '        panel.backgroundColor = UIColor(red: 0.1255, green: 0.302, blue: 0.2235, alpha: 1)',
-        '        let label = UILabel(frame: panel.bounds)',
+        '        panel.backgroundColor = UIColor(red: 0.0784, green: 0.1059, blue: 0.0863, alpha: 1)',
+        '        let label = UILabel(frame: panel.bounds.insetBy(dx: 20, dy: 70))',
         '        label.numberOfLines = 0',
-        '        label.textAlignment = .center',
+        '        label.textAlignment = .left',
         '        label.textColor = UIColor.white',
-        '        label.font = UIFont.systemFont(ofSize: 20, weight: .semibold)',
-        '        label.text = "书隐 原生层正常\\n\\nv' + version + '\\n\\n网页正在加载…"',
+        '        label.font = UIFont.monospacedSystemFont(ofSize: 13, weight: .regular)',
+        '        let ver = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"',
+        '        label.text = "书隐 v" + ver + "\\n\\n原生层已启动，正在读取网页状态…\\n\\n（这一屏停留 18 秒，请截图）"',
         '        label.autoresizingMask = [.flexibleWidth, .flexibleHeight]',
         '        panel.addSubview(label)',
         '        win.addSubview(panel)',
-        '        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {',
+        '        func findWebView(_ view: UIView) -> WKWebView? {',
+        '            if let web = view as? WKWebView { return web }',
+        '            for sub in view.subviews {',
+        '                if let found = findWebView(sub) { return found }',
+        '            }',
+        '            return nil',
+        '        }',
+        '        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {',
+        '            guard let web = findWebView(win) else {',
+        '                label.text = "书隐 v" + ver + "\\n\\n没有找到 WKWebView\\n\\n说明 Capacitor 的网页视图根本没建起来 —— 问题在工程配置，不在网页代码。"',
+        '                return',
+        '            }',
+        '            var report = "书隐 v" + ver + "\\n\\n"',
+        '            report += "网页地址：\\n" + (web.url?.absoluteString ?? "nil") + "\\n\\n"',
+        '            report += "网页标题：\\n" + (web.title ?? "nil") + "\\n\\n"',
+        '            report += "若标题以 DIAG| 开头，那就是网页自检状态：\\n阶段|shell|字数|ready|错误"',
+        '            label.text = report',
+        '        }',
+        '        DispatchQueue.main.asyncAfter(deadline: .now() + 18.0) {',
         '            UIView.animate(withDuration: 0.3, animations: { panel.alpha = 0 }) { _ in panel.removeFromSuperview() }',
         '        }',
         '    }'
       ].join('\n');
       const before = src;
-      src = src.replace(/func applicationDidBecomeActive\(_ application: UIApplication\)\s*\{[\s\S]*?\n    \}/, probe);
+      // 连前导缩进一起吃掉，避免 probe 的第一行比函数体多缩进一层
+      src = src.replace(/\n    func applicationDidBecomeActive\(_ application: UIApplication\)\s*\{[\s\S]*?\n    \}/,
+        '\n' + probe);
       if (src === before) {
         console.log('启动探针注入失败：AppDelegate 里没匹配到 applicationDidBecomeActive（不影响构建）');
       } else {
