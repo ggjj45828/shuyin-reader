@@ -72,7 +72,7 @@ test('听书音频可枚举可删除，且拒绝路径穿越', () => {
 test('版本号四处一致', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
-  assert.equal(pkg.version, '0.10.15');
+  assert.equal(pkg.version, '0.10.17');
   assert.equal(lock.version, pkg.version, 'lock 顶层版本不一致');
   assert.equal(lock.packages[''].version, pkg.version, 'lock 根包版本不一致');
 
@@ -92,4 +92,12 @@ test('原生启动探针不能被弄丢', () => {
   assert.match(script, /applicationDidBecomeActive/, '构建脚本里没有注入启动探针');
   assert.match(script, /918273/, '探针缺少幂等标记（会在每次切回前台重复弹出）');
   assert.match(script, /UIView\(frame: win\.bounds\)/, '探针没有自己画一屏 UI');
+});
+
+test('iOS 冷启动先运行页面自检，主入口脚本不阻塞首帧', () => {
+  const html = fs.readFileSync(path.join(root, 'www', 'index.html'), 'utf8');
+  assert.match(html, /settle\(\);\s*var timer=setInterval\(settle,250\)/,
+    '启动诊断必须在任何页面资源阻塞前立即写入状态');
+  assert.match(html, /direct-web\.js\?[^" ]*" defer/, '搜索引擎入口不能阻塞首帧');
+  assert.match(html, /app\.js\?[^" ]*" defer/, '主 App 初始化不能阻塞首帧');
 });

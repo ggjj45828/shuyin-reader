@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="./fonts/fonts.css" />
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"></head>
 <body>
-  <!-- v0.10.15 启动自检（第二版）。
+  <!-- v0.10.17 启动自检（启动脚本延迟执行版）。
        v0.10.10 的自检层有个致命误判：它用「.app-shell 高度 > 10」判断界面是否就绪，
        可 styles.css 里写的是 .app-shell{min-height:100vh}，这个盒子**永远**有整屏高度，
        于是 200 毫秒后自检层就把自己删掉了 —— 页面一旦没渲染出来，屏幕上依然是一片白。
@@ -23,7 +23,7 @@
     <div style="font-size:25px;letter-spacing:.22em;font-weight:600">书隐</div>
     <div id="bootDiagText" style="font-size:13px;color:#5d7266">正在启动…</div>
     <div id="bootDiagDetail" style="font-size:10px;line-height:1.65;color:#93a196;white-space:pre-wrap;max-width:100%;word-break:break-all"></div>
-    <div id="bootDiagVersion" style="font-size:10px;color:#a8b3aa;letter-spacing:.08em">v0.10.15</div>
+    <div id="bootDiagVersion" style="font-size:10px;color:#a8b3aa;letter-spacing:.08em">v0.10.17</div>
   </div>
   <script>
   (function(){
@@ -116,6 +116,9 @@
       window.__shuyinLastError='Promise: '+(r.message||r);
       fail('启动异常：'+(r.message||r),String(r.stack||'').slice(0,800));
     });
+    // 解析到后面那些阻塞脚本之前，先把状态和标题写出去并绘制一帧。
+    // 否则原生诊断只能读到 <title> 里的静态文字，看不出网页脚本到底跑没跑。
+    settle();
     var timer=setInterval(settle,250);
     setTimeout(function(){clearInterval(timer)},120000);
     setTimeout(function(){
@@ -181,7 +184,7 @@
         <div class="page-intro"><p class="eyebrow">PREFERENCES</p><h1>设置与同步</h1><p>管理阅读习惯、备份和 NAS 连接。</p></div>
         <div class="settings-layout"><div class="settings-nav"><button class="settings-tab selected">阅读偏好</button><button class="settings-tab">数据与备份</button><button class="settings-tab">NAS 同步</button></div>
           <div class="settings-content"><div class="setting-card" id="settings-reading"><h2>阅读偏好</h2><p>调整书页的文字显示。</p><div class="setting-row"><div><strong>字体大小</strong><span>正文显示大小</span></div><div class="font-control"><button id="fontDown">A−</button><span id="fontSizeLabel">18px</span><button id="fontUp">A＋</button></div></div><div class="setting-row"><div><strong>阅读背景</strong><span>选择更舒适的纸张色</span></div><div class="theme-options"><button class="theme-chip selected" data-theme="paper">暖纸</button><button class="theme-chip" data-theme="white">白昼</button><button class="theme-chip" data-theme="green">松绿</button><button class="theme-chip" data-theme="night">夜读</button></div></div></div>
-          <div class="setting-card" id="settings-nas"><h2>NAS 书库</h2><p>部署在极空间后，书籍、阅读进度和书架都会保存在 NAS；iPhone 与其他设备访问同一地址即可共用。</p><div class="nas-deploy-note"><span class="status-dot" id="nasStatusDot"></span><span id="nasStatusText">当前使用本机浏览器书库</span></div><p class="version-note">书隐 iOS v0.10.15 · 本机阅读与 NAS 可选双向同步</p><p class="form-hint">使用极空间远程访问或你自己的 HTTPS 隧道打开阅读器地址。阅读器不需要登录密码，请勿将服务直接暴露到公网。</p></div>
+          <div class="setting-card" id="settings-nas"><h2>NAS 书库</h2><p>部署在极空间后，书籍、阅读进度和书架都会保存在 NAS；iPhone 与其他设备访问同一地址即可共用。</p><div class="nas-deploy-note"><span class="status-dot" id="nasStatusDot"></span><span id="nasStatusText">当前使用本机浏览器书库</span></div><p class="version-note">书隐 iOS v0.10.17 · 本机阅读与 NAS 可选双向同步</p><p class="form-hint">使用极空间远程访问或你自己的 HTTPS 隧道打开阅读器地址。阅读器不需要登录密码，请勿将服务直接暴露到公网。</p></div>
           <div class="setting-card" id="settings-backup"><h2>书库备份</h2><p>导出书目与阅读进度，便于迁移或备份。</p><div class="backup-actions"><button id="exportLibrary" class="secondary-button">导出书库备份</button><label class="secondary-button import-backup">导入备份<input id="backupInput" type="file" accept="application/json" /></label></div></div></div></div>
       </section>
 
@@ -189,7 +192,7 @@
     </main>
   </div>
   <div id="toast" class="toast" role="status"></div>
-  <script src="./direct-web.js?v=20261019-r90"></script><script src="./app.js?v=20261019-r92"></script>
+<script src="./direct-web.js?v=20261019-r92" defer></script><script src="./app.js?v=20261019-r94" defer></script>
   
 <script src="./reader-chapter-guard.js?v=20261018-r85" defer></script><script src="./reader-extras.js?v=20261019-r54" defer></script><script src="./reader-mobile-fix.js?v=20261017-r53" defer></script><script src="./reader-nas-tts.js?v=20261019-r63" defer></script><script src="./reader-tts-plus.js?v=20261018-r70" defer></script><script src="./reader-library-tools.js?v=20261018-r70" defer></script><script src="./reader-offline-manager.js?v=20261018-r85" defer></script><script src="./reader-source-guard.js?v=20261019-r90" defer></script><script src="./reader-reading-polish.js?v=20261019-r90" defer></script><script src="./reader-font-choice.js?v=20261018-r88" defer></script><script src="./reader-position.js?v=20261018-r88" defer></script><script src="./reader-floating.js?v=20261017-r69" defer></script><script src="./vendor/jszip.min.js"></script><script src="./vendor/mammoth.browser.min.js"></script><script type="module">import * as pdfjsLib from './vendor/pdf.mjs';pdfjsLib.GlobalWorkerOptions.workerSrc=new URL('./vendor/pdf.worker.mjs',import.meta.url).toString();window.pdfjsLib=pdfjsLib;</script><script src="./offline-formats.js"></script><script src="./local-backup.js" defer></script><script src="./reading-tools.js" defer></script><script src="./vendor/shuyin-browser.js"></script><script src="./vendor/shuyin-audio.js"></script><script src="./vendor/shuyin-secure-store.js"></script><script src="./vendor/shuyin-share.js"></script><script src="./vendor/shuyin-ocr.js"></script><script src="./nas-sync.js" defer></script><script src="./ebook-export.js" defer></script><script src="./reader-offline-download.js" defer></script><script src="./reader-native-audio.js" defer></script><script src="./shuyin-native.js" defer></script><script src="./mobile-local-services.js?v=20261018-r68" defer></script><script src="./mobile-enhancements.js?v=20261017-r69" defer></script><script>if('serviceWorker'in navigator&&!window.Capacitor?.isNativePlatform?.()&&location.protocol==='https:')navigator.serviceWorker.register(new URL('./sw.js',location.href),{scope:new URL('./',location.href).pathname}).catch(error=>console.warn('书隐离线壳注册失败',error));</script></body>
 </html>

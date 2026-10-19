@@ -48,7 +48,7 @@
    // 3) 把被硬换行切断的句子接回去（盗站常在句中断行，接不回来就会一句一段）
    const merged=[];
    for(const line of kept){
-     if(!line){if(merged.length&&merged.at(-1)!=='')merged.push('');continue}
+     if(!line){if(merged.length&&merged[merged.length-1]!=='')merged.push('');continue}
      const last=merged[merged.length-1];
      if(last&&last!==''&&last.length>=12&&!SENTENCE_END.test(last)&&!HEADING_START.test(line)&&line.length>=6&&last.length+line.length<=600)merged[merged.length-1]=last+line;
      else {if(last&&last!==''&&SENTENCE_END.test(last))merged.push('');merged.push(line)}
